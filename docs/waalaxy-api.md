@@ -56,6 +56,21 @@ Tous vérifiés en appel réel le 2026-09-23 depuis la page (fetch avec le Beare
 
 Codes d'erreur de `POST /campaigns` relevés dans l'app : `R005400-004` prospects déjà en campagne, `R005409-002` / `R002400-011` nom déjà pris, `R002401-001` permission de créer une séquence, `R002401-002` plan Business requis, `R002400-002` compte email introuvable.
 
+### Listes et prospects (vérifiés le 2026-09-23, recette réelle)
+
+| Verbe | Chemin | Corps | Réponse / piège |
+|---|---|---|---|
+| POST | `/prospectLists/getProspectLists` | `{}` | tableau `[{_id, name, totalProspects, …}]`. **`totalProspects` peut rester à 0** après un import : compter avec `getProspects`. |
+| POST | `/prospectLists/createProspectList` | **`{prospectList: {name, iconColor?, iconLabel?}}`** (enveloppé, sinon `V000400-001 prospectList: expected object`) | l'objet liste avec `_id` |
+| POST | `/prospects/addProspectFromIntegration` | `{prospects:[{url, customProfile?:{firstName,lastName,email…}, customVariables?}], prospectListId, origin:{name}, canCreateDuplicates?, moveDuplicatesToOtherList?, campaignId?}` — même contrat que l'API publique Zuplo, **accepte le Bearer cloud**. `url` accepte `/in/<memberId ACoAA…>` ; le serveur résout `publicIdentifier`, `salesMemberId`, headline, région depuis son cache de profils. Lots de 10 en ~0,6 s. | `{result:[{importCode:"success"\|"duplicated_prospect"\|…, prospect:{_id, profile}}]}` — **c'est la voie qui persiste** (vérifié par `getProspect` et `getProspects` juste après). `origin.name` libre s'affiche « API-<name> ». |
+| POST | `/prospects/addProspectsToList` | flux « import CSV » de l'app : `{prospects:[{status:"unknown", profile:{memberId}, origin:{name:"csv"}, prospectList, sharedGroups:[], sharedProfessionalEvents:[], customProfile}], importId, importType:"csv", canCreateDuplicates, moveDuplicatesToOtherList, shouldOverwriteProfileData, shouldOverwriteCustomProfileData}` | **Piège** : répond `[{code:200, prospect:{_id,…}}]` avec un `_id` neuf à chaque appel **mais rien n'est persisté** en mode cloud (`getProspect {_id}` → `prospect_not_found`, liste vide). Dans l'app, c'est l'extension qui résout le statut avant l'envoi. Ne pas utiliser. |
+| POST | `/imports/createImport` | `{origin:"csv", prospectList, moveDuplicatesToOtherList}` → `{_id}` ; puis `/prospects/addImportedProspect {_id, prospectsImportResult:[]}` et `/imports/updateImportStatus {importData:{_id, status:"finished"}}` | inutiles avec `addProspectFromIntegration`. `getImports` exige un `params` non documenté (400 sinon). |
+| POST | `/prospects/getProspects` | `{prospectList:"<id>" (string), prospectSelection:{excluded:[]}, size, projection?:{_idOnly:true}, excTravelerStatus?, filters?, search?}` | `{prospects, prospectsCount, prospectListSize}`. Un objet dans `prospectList` → 400. Sans `prospectList`, tout le CRM (18 315). |
+| POST | `/prospects/getProspect` | `{_id}` | le prospect (`R000404-001 prospect_not_found` sinon) |
+| POST | `/prospects/getProspectsCount` | `{prospectList}` | `{count}` |
+
+Script prêt : `scripts/likers_to_list.py` (réactions aux N derniers posts d'un profil → liste Waalaxy, via Apify sans cookie LinkedIn).
+
 ## Endpoints (service `voltaire`, préfixe `/api/voltaire`) — modèles de message
 
 | Verbe | Chemin | Corps | Réponse |

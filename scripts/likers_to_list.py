@@ -90,8 +90,9 @@ def get_or_create_list(c: WaalaxyClient, name: str) -> str:
     existing = next((l for l in lists if l["name"] == name), None)
     if existing:
         return existing["_id"]
-    created = c._call("POST", "/profesor/prospectLists/createProspectList",
-                      json_body={"prospectList": {"name": name, "iconColor": "#0A66C2", "iconLabel": "LI"}})
+    created = c._write("POST", "/profesor/prospectLists/createProspectList",
+                       {"prospectList": {"name": name, "iconColor": "#0A66C2", "iconLabel": "LI"}},
+                       dry_run=False, target=f"créer la liste « {name} »")
     list_id = created.get("_id") or created.get("prospectList", {}).get("_id")
     if not list_id:
         raise SystemExit(f"createProspectList sans _id : {created}")
@@ -103,14 +104,16 @@ def import_people(c: WaalaxyClient, list_id: str, people: list[dict], origin: st
     dups, errors = [], []
     for i in range(0, len(people), BATCH):
         chunk = people[i:i + BATCH]
-        res = c._call("POST", "/profesor/prospects/addProspectFromIntegration", json_body={
+        res = c._write("POST", "/profesor/prospects/addProspectFromIntegration", {
             "prospects": [{"url": f"https://www.linkedin.com/in/{p['memberId']}",
                            "customProfile": {k: v for k, v in
                                              {"firstName": p["firstName"], "lastName": p["lastName"]}.items() if v}}
                           for p in chunk],
             "prospectListId": list_id, "origin": {"name": origin},
             "canCreateDuplicates": False, "moveDuplicatesToOtherList": False,
-        })
+        }, dry_run=False, target=f"liste {list_id} : importer {len(chunk)} prospects")
+        if res.get("dry_run"):
+            raise SystemExit("WAALAXY_DRY_RUN est actif : rien n'est envoyé.")
         for r, p in zip(res.get("result", []), chunk):
             code = r.get("importCode", "?")
             counts[code] = counts.get(code, 0) + 1

@@ -42,6 +42,20 @@ DEFAULT_API_URL = "https://stargate.prod.aws.waalaxy.com/api"
 RATE_LIMIT_S = 0.5  # 2 req/s max
 STATES = ("draft", "paused", "running", "stopped")
 
+# Routes de LECTURE qui passent par POST chez Waalaxy. Toute autre requete non-GET
+# est refusee par _call : une ecriture passe obligatoirement par _write (dry-run, GO).
+# Ne inscrire ici qu'une route dont le nom ET l'effet observe sont une lecture.
+READ_POSTS = frozenset({
+    "/profesor/campaigns/getAll",
+    "/profesor/campaigns/countPerStatus",
+    "/profesor/travelerssummary",
+    "/profesor/prospectLists/getProspectLists",
+    "/profesor/prospects/getProspects",
+    "/profesor/prospects/getProspectsCount",
+    "/profesor/prospects/getProspect",
+    "/profesor/tags/getTags",
+})
+
 
 class WaalaxyError(Exception):
     """Erreur API ou de configuration. `status` vaut 0 hors HTTP."""
@@ -113,6 +127,19 @@ class WaalaxyClient:
         self._last_call = time.monotonic()
 
     def _call(self, method: str, path: str, *, json_body=None, params=None):
+        """Lecture seule : GET, ou POST d'une route listee dans READ_POSTS.
+
+        Garde-fou ajoute apres l'incident du 2026-09-23 : une sonde `{}` sur
+        POST /prospects/archiveProspects (passee par _call) a supprime tous les prospects.
+        Aucune requete d'ecriture, meme exploratoire, ne doit pouvoir partir d'ici.
+        """
+        if method.upper() != "GET" and path not in READ_POSTS:
+            raise WaalaxyError(
+                f"_call refuse {method} {path} : route non listee en lecture (READ_POSTS). "
+                "Une ecriture passe par _write, avec cible explicite et GO.")
+        return self._request(method, path, json_body=json_body, params=params)
+
+    def _request(self, method: str, path: str, *, json_body=None, params=None):
         self._throttle()
         try:
             r = self.http.request(method, path, json=json_body, params=params)
@@ -132,7 +159,7 @@ class WaalaxyClient:
         on rend la requete qui serait emise, pour la montrer."""
         if dry_run or dry_run_force():
             return {"dry_run": True, "method": method, "path": path, "cible": target, "payload": payload}
-        return self._call(method, path, json_body=payload)
+        return self._request(method, path, json_body=payload)
 
     # --- Lecture : campagnes (service profesor) ---------------------------
 

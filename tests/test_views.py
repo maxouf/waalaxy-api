@@ -101,3 +101,15 @@ def test_user_id_deduit_du_jeton():
     payload = base64.urlsafe_b64encode(json.dumps({"_id": "abc123", "linkedinId": "x"}).encode()).rstrip(b"=").decode()
     assert user_id_from_token(f"hdr.{payload}.sig") == "abc123"
     assert user_id_from_token("pas-un-jwt") is None
+
+
+def test_call_refuse_toute_ecriture_hors_liste():
+    import pytest
+    from waalaxy_api.client import WaalaxyClient, WaalaxyError
+    c = WaalaxyClient.__new__(WaalaxyClient)
+    c._request = lambda *a, **k: {"ok": True}
+    assert c._call("POST", "/profesor/campaigns/getAll", json_body={})["ok"]
+    assert c._call("GET", "/profesor/campaigns/x")["ok"]
+    for m, p in (("POST", "/profesor/prospects/archiveProspects"), ("PUT", "/profesor/campaigns/x/stop"), ("DELETE", "/profesor/tags/removeTag/x"), ("POST", "/profesor/campaigns")):
+        with pytest.raises(WaalaxyError):
+            c._call(m, p, json_body={})

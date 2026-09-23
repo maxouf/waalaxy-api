@@ -1,0 +1,33 @@
+[
+ {
+  "_id": "3c1021f6ca5f71ec78faf2e6",
+  "user": "c89d6ca22e83c48707631793",
+  "name": "Campagne 1",
+  "iconColor": "#4E4B66",
+  "iconLabel": "⛔️",
+  "doNotContact": true,
+  "totalProspects": 0,
+  "__v": 0,
+  "insensitiveCaseName": "ne pas contacter"
+ },
+ {
+  "_id": "4352945db26d452ea206b780",
+  "user": "c89d6ca22e83c48707631793",
+  "name": "Campagne 2",
+  "totalProspects": 174,
+  "__v": 0,
+  "createdAt": "2025-09-17T14:36:34.990Z",
+  "updatedAt": "2025-09-17T14:42:27.035Z",
+  "insensitiveCaseName": "cgp + immo"
+ },
+ {
+  "_id": "a538f285eebb75f65983ecdb",
+  "__v": 0,
+  "createdAt": "2025-05-19T17:28:28.366Z",
+  "name": "Campagne 3",
+  "totalProspects": 957,
+  "updatedAt": "2025-05-19T17:53:40.025Z",
+  "user": "c89d6ca22e83c48707631793",
+  "insensitiveCaseName": "consultant rse"
+ }
+]

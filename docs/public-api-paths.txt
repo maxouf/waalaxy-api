@@ -1,0 +1,5 @@
+/campaigns/getAll
+/foo/bar
+/integrations/test
+/prospectLists/getProspectLists
+/prospects/addProspectFromIntegration

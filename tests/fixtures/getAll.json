@@ -1,0 +1,237 @@
+{
+ "total": 50,
+ "campaigns": [
+  {
+   "_id": "80f996799cc6d9e4954c9a71",
+   "name": "Campagne 1",
+   "user": "c89d6ca22e83c48707631793",
+   "priority": 5,
+   "triggers": [],
+   "state": "running",
+   "origins": [
+    {
+     "origin": "prospect_batch",
+     "travelerCount": 3966,
+     "prospectList": "93cf3bec41ee0a43e5c7af22",
+     "_id": "104c02339b5693b20a227f86",
+     "__v": 0,
+     "createdAt": "2026-09-23T11:31:47.225Z",
+     "updatedAt": "2026-09-23T11:31:47.225Z"
+    }
+   ],
+   "history": [
+    {
+     "date": "2026-09-23T11:31:47.238Z",
+     "action": "created"
+    }
+   ],
+   "iconColor": "pink",
+   "worldTags": [
+    "templates.category.linkedin",
+    "templates.category.beginner",
+    "templates.category.recommended"
+   ],
+   "worldComplexity": 1,
+   "activeTravelersCount": 844,
+   "__v": 0,
+   "createdAt": "2026-09-23T11:31:47.268Z",
+   "updatedAt": "2026-09-23T15:50:17.339Z",
+   "travelersCount": {
+    "error": 4,
+    "finished": 0,
+    "paused": 0,
+    "stopped": 0,
+    "total": 853,
+    "traveling": 844,
+    "hasReplied": 1,
+    "hasRepliedInterested": 4,
+    "hasRepliedLaterInterested": 0,
+    "hasRepliedNotInterested": 0,
+    "hasNotReplied": 0,
+    "hasAcceptedInvitation": 0,
+    "hasNotAcceptedInvitation": 0,
+    "hasBeenEnriched": 0,
+    "hasNotBeenEnriched": 0,
+    "frozen": 0,
+    "postponed": 0,
+    "deleted": 0
+   },
+   "hasTravelersWithOngoingAction": true,
+   "hasTravelingTravelers": true
+  },
+  {
+   "_id": "8c81e4157570f9ab645445ab",
+   "name": "Campagne 4",
+   "user": "c89d6ca22e83c48707631793",
+   "priority": 5,
+   "triggers": [
+    "d2b46b486a8ce6176fe5a56c"
+   ],
+   "state": "running",
+   "origins": [
+    {
+     "_id": "6b563da17f17e937928525e8",
+     "origin": "trigger",
+     "travelerCount": 199,
+     "trigger": "d2b46b486a8ce6176fe5a56c",
+     "__v": 0,
+     "createdAt": "2025-10-13T11:01:37.533Z",
+     "updatedAt": "2026-09-23T07:29:43.863Z"
+    }
+   ],
+   "history": [
+    {
+     "date": "2025-10-13T11:01:37.540Z",
+     "action": "created"
+    }
+   ],
+   "iconColor": "pink",
+   "worldTags": [
+    "templates.category.linkedin",
+    "templates.category.beginner"
+   ],
+   "worldComplexity": 1,
+   "activeTravelersCount": 27,
+   "__v": 0,
+   "createdAt": "2025-10-13T11:01:37.576Z",
+   "updatedAt": "2026-09-23T07:29:50.365Z",
+   "travelersCount": {
+    "error": 20,
+    "finished": 0,
+    "paused": 0,
+    "stopped": 0,
+    "total": 167,
+    "traveling": 27,
+    "hasReplied": 11,
+    "hasRepliedInterested": 16,
+    "hasRepliedLaterInterested": 24,
+    "hasRepliedNotInterested": 0,
+    "hasNotReplied": 31,
+    "hasAcceptedInvitation": 0,
+    "hasNotAcceptedInvitation": 38,
+    "hasBeenEnriched": 0,
+    "hasNotBeenEnriched": 0,
+    "frozen": 0,
+    "postponed": 0,
+    "deleted": 0
+   },
+   "hasTravelingTravelers": true
+  },
+  {
+   "_id": "42c6e1bf6be11f66ade55129",
+   "name": "Campagne 5",
+   "user": "c89d6ca22e83c48707631793",
+   "priority": 5,
+   "triggers": [],
+   "state": "stopped",
+   "origins": [
+    {
+     "origin": "prospect_batch",
+     "travelerCount": 17,
+     "prospectList": "336b680e57e4b69d0efa5c71",
+     "_id": "1be738f380a9433534010bd9",
+     "__v": 0,
+     "createdAt": "2025-09-01T12:17:54.650Z",
+     "updatedAt": "2025-09-01T12:17:54.650Z"
+    }
+   ],
+   "history": [
+    {
+     "date": "2025-09-01T12:17:54.666Z",
+     "action": "created"
+    },
+    {
+     "date": "2025-10-13T11:01:54.049Z",
+     "action": "archived",
+     "step": null
+    }
+   ],
+   "iconColor": "green",
+   "subWorlds": {
+    "onReply": {
+     "world": {
+      "name": "Campagne 6",
+      "userId": "c89d6ca22e83c48707631793",
+      "startingPoint": {
+       "id": "1",
+       "type": "webhook",
+       "params": {
+        "type": "other",
+        "url": "https://hooks.airtable.com/workflows/v1/genericWebhook/appu8CTKEpKMiyhsN/wflFPa7udGq5hMR6n/wtrBysggaJCCdWzYc"
+       }
+      },
+      "waypoints": [
+       {
+        "id": "1",
+        "type": "webhook",
+        "params": {
+         "type": "other",
+         "url": "https://hooks.airtable.com/workflows/v1/genericWebhook/appu8CTKEpKMiyhsN/wflFPa7udGq5hMR6n/wtrBysggaJCCdWzYc"
+        }
+       },
+       {
+        "id": "2",
+        "type": "end"
+       }
+      ],
+      "paths": [
+       {
+        "id": "p1",
+        "to": "2",
+        "from": "1",
+        "condition": {
+         "id": "c1",
+         "isAtomic": true,
+         "entity": {
+          "type": "default"
+         }
+        }
+       }
+      ],
+      "complexity": 1,
+      "tags": [
+       "templates.category.linkedin",
+       "templates.category.beginner",
+       "templates.category.recommended"
+      ],
+      "prospectsPreConditions": [],
+      "_id": "bc261c21fc535c4f4fb13695",
+      "createdAt": "2025-09-01T12:17:54.669Z",
+      "updatedAt": "2025-09-01T12:17:54.669Z",
+      "__v": 0
+     }
+    }
+   },
+   "worldTags": [
+    "templates.category.linkedin",
+    "templates.category.beginner",
+    "templates.category.recommended"
+   ],
+   "worldComplexity": 1,
+   "activeTravelersCount": 0,
+   "__v": 0,
+   "createdAt": "2025-09-01T12:17:54.710Z",
+   "updatedAt": "2025-10-13T11:01:54.060Z",
+   "travelersCount": {
+    "error": 1,
+    "finished": 0,
+    "paused": 0,
+    "stopped": 0,
+    "total": 1,
+    "traveling": 0,
+    "hasReplied": 0,
+    "hasRepliedInterested": 0,
+    "hasRepliedLaterInterested": 0,
+    "hasRepliedNotInterested": 0,
+    "hasNotReplied": 0,
+    "hasAcceptedInvitation": 0,
+    "hasNotAcceptedInvitation": 0,
+    "hasBeenEnriched": 0,
+    "hasNotBeenEnriched": 0,
+    "frozen": 0,
+    "postponed": 0,
+    "deleted": 0
+   }
+  }
+ ]
+}

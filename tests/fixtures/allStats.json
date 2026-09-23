@@ -1,0 +1,36 @@
+{
+ "responsesMessage": {
+  "answerRate": 13.4,
+  "totalReplies": 1561,
+  "totalSent": 11611
+ },
+ "responsesEmail": {
+  "answerRate": 0,
+  "totalReplies": 0,
+  "totalSent": 0
+ },
+ "acceptance": {
+  "acceptanceRate": 44.6,
+  "totalAccepted": 3145,
+  "totalSent": 7050
+ },
+ "emailDelivery": {
+  "totalSent": 0,
+  "deliveryRate": 0
+ },
+ "emailBounced": {
+  "bounceRate": 0,
+  "totalBounced": 0,
+  "totalSent": 0
+ },
+ "emailFinder": {
+  "total": 322,
+  "totalSuccess": 153,
+  "successRate": 47.5
+ },
+ "emailOpened": {
+  "openedRate": 0,
+  "totalOpened": 0,
+  "totalSent": 0
+ }
+}

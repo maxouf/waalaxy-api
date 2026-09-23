@@ -1,0 +1,284 @@
+{
+ "_id": "2a4c52d7958f7b99cfbc06ed",
+ "name": "Campagne 7",
+ "user": "c89d6ca22e83c48707631793",
+ "state": "draft",
+ "sequence": {
+  "paths": [
+   {
+    "id": "1",
+    "to": "2",
+    "from": "1",
+    "condition": {
+     "isAtomic": false,
+     "leftOperand": {
+      "id": "_v18lgv6fk",
+      "isAtomic": true,
+      "entity": {
+       "type": "isNotConnected"
+      }
+     },
+     "comparator": "OR",
+     "rightOperand": {
+      "id": "_3lvla7tff",
+      "isAtomic": true,
+      "entity": {
+       "type": "isUnknownStatus"
+      }
+     },
+     "id": "_b26e8z8wt"
+    },
+    "_id": "bd1ff04fba8a27f4f5e72670"
+   },
+   {
+    "id": "2",
+    "to": "5",
+    "from": "1",
+    "condition": {
+     "isAtomic": false,
+     "leftOperand": {
+      "id": "_gd3lkzcfu",
+      "isAtomic": true,
+      "entity": {
+       "type": "isConnected"
+      }
+     },
+     "comparator": "OR",
+     "rightOperand": {
+      "id": "_3wqjabntp",
+      "isAtomic": true,
+      "entity": {
+       "type": "isUnknownStatus"
+      }
+     },
+     "id": "_nwdv78dlh"
+    },
+    "_id": "881b2ef6b4db1075f91bc42f"
+   },
+   {
+    "id": "624726",
+    "to": "1755996",
+    "from": "1",
+    "condition": {
+     "isAtomic": false,
+     "leftOperand": {
+      "id": "_ygh1i7c51",
+      "isAtomic": true,
+      "entity": {
+       "type": "isPending"
+      }
+     },
+     "comparator": "OR",
+     "rightOperand": {
+      "id": "_brzugohfy",
+      "isAtomic": true,
+      "entity": {
+       "type": "isUnknownStatus"
+      }
+     },
+     "id": "_6l7ywbjn5"
+    },
+    "_id": "60cadbbcc8da50394bf661b3"
+   },
+   {
+    "id": "3",
+    "to": "3",
+    "from": "2",
+    "condition": {
+     "id": "_xoavwuyth",
+     "isAtomic": true,
+     "entity": {
+      "type": "isConnected"
+     }
+    },
+    "_id": "989928a26329c54e4c958c50"
+   },
+   {
+    "id": "4",
+    "to": "4",
+    "from": "2",
+    "condition": {
+     "id": "_gfdis3kzu",
+     "isAtomic": false,
+     "leftOperand": {
+      "id": "_3uuxtct88",
+      "isAtomic": true,
+      "entity": {
+       "type": "isPending"
+      }
+     },
+     "comparator": "AND",
+     "rightOperand": {
+      "id": "_n51r1saj7",
+      "isAtomic": true,
+      "entity": {
+       "type": "sleep",
+       "params": {
+        "time": 30
+       }
+      }
+     }
+    },
+    "_id": "75ae20fd15f33ed65933de5c"
+   }
+  ],
+  "startingPoint": {
+   "id": "1",
+   "type": "entry"
+  },
+  "waypoints": [
+   {
+    "id": "1",
+    "type": "entry",
+    "_id": "b4946afe456e1b63250eb50c"
+   },
+   {
+    "id": "2",
+    "type": "connectLinkedin",
+    "_id": "b979733926080b69e5e11e46"
+   },
+   {
+    "id": "3",
+    "type": "goal",
+    "_id": "80f89b1c78ee8c4a672ab1f1"
+   },
+   {
+    "id": "4",
+    "type": "failed",
+    "_id": "69036da24d24c1ad6f876db7"
+   },
+   {
+    "id": "5",
+    "type": "end",
+    "_id": "cb3fa82ec9b558d43558e8d1"
+   },
+   {
+    "id": "1755996",
+    "type": "end",
+    "_id": "efeba0dff283f65bc3de8e8a"
+   }
+  ],
+  "complexity": 1,
+  "tags": [
+   "templates.category.linkedin",
+   "templates.category.beginner",
+   "templates.category.recommended"
+  ],
+  "worldTemplate": "6f31c385f9998a7026e081d8",
+  "prospectsPreConditions": [
+   {
+    "type": "SmallMultiSelectFilter",
+    "value": [
+     "not_connected",
+     "unknown"
+    ],
+    "name": "Campagne 3"
+   }
+  ],
+  "_id": "0e570e23a2f29d31e83a2da7"
+ },
+ "prospectSources": [
+  {
+   "prospectList": {
+    "_id": "452d7a921df8207c06249143",
+    "name": "Campagne 8",
+    "user": "c89d6ca22e83c48707631793",
+    "totalProspects": 1085,
+    "__typename": "ProspectList"
+   },
+   "count": 1070,
+   "exc": [],
+   "_id": "3b6c48c9fbe844504c6fd682"
+  },
+  {
+   "prospectList": {
+    "_id": "69e72d901ab1e20f7eda4927",
+    "name": "Campagne 9",
+    "user": "c89d6ca22e83c48707631793",
+    "totalProspects": 434,
+    "__typename": "ProspectList"
+   },
+   "count": 13,
+   "exc": [],
+   "_id": "50ddff9d515f6370ad876623"
+  },
+  {
+   "prospectList": {
+    "_id": "658c8097489fa8ebcd4c6403",
+    "name": "Campagne 10",
+    "user": "c89d6ca22e83c48707631793",
+    "totalProspects": 1020,
+    "__typename": "ProspectList"
+   },
+   "count": 1018,
+   "exc": [],
+   "_id": "e1988b105f2455e65f200f66"
+  },
+  {
+   "prospectList": {
+    "_id": "93cf3bec41ee0a43e5c7af22",
+    "name": "Campagne 11",
+    "user": "c89d6ca22e83c48707631793",
+    "totalProspects": 5232,
+    "__typename": "ProspectList"
+   },
+   "count": 244,
+   "exc": [],
+   "_id": "b43e68c687fcc0590b8df9ae"
+  },
+  {
+   "prospectList": {
+    "_id": "b84a17a7a6cd10152eee7d39",
+    "name": "Campagne 12",
+    "user": "c89d6ca22e83c48707631793",
+    "totalProspects": 747,
+    "__typename": "ProspectList"
+   },
+   "count": 723,
+   "exc": [],
+   "_id": "63dffd6d23a1ec30cc0f41e6"
+  },
+  {
+   "prospectList": {
+    "_id": "afe23bfca60b0770208d9eed",
+    "name": "Campagne 13",
+    "user": "c89d6ca22e83c48707631793",
+    "totalProspects": 258,
+    "__typename": "ProspectList"
+   },
+   "count": 11,
+   "exc": [],
+   "_id": "17bc8d5586803cc79a01550e"
+  },
+  {
+   "prospectList": {
+    "_id": "e085d4ef8d5eb131698558b8",
+    "name": "Campagne 14",
+    "user": "c89d6ca22e83c48707631793",
+    "totalProspects": 1653,
+    "__typename": "ProspectList"
+   },
+   "count": 1245,
+   "exc": [],
+   "_id": "f68ae41bfae502e2d3702120"
+  },
+  {
+   "prospectList": {
+    "_id": "31aff8e152498002615f6856",
+    "name": "Campagne 15",
+    "user": "c89d6ca22e83c48707631793",
+    "totalProspects": 947,
+    "__typename": "ProspectList"
+   },
+   "count": 97,
+   "exc": [],
+   "_id": "7a942175d694e8cfbb3b58ab"
+  }
+ ],
+ "iconColor": "blue",
+ "lastStepIndexInQuickLaunch": 3,
+ "__v": 0,
+ "createdAt": "2024-12-09T20:25:16.589Z",
+ "updatedAt": "2026-03-03T13:55:21.581Z",
+ "subWorlds": {}
+}

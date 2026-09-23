@@ -1,0 +1,220 @@
+{
+ "_id": "80f996799cc6d9e4954c9a71",
+ "name": "Campagne 1",
+ "user": "c89d6ca22e83c48707631793",
+ "world": {
+  "name": "Campagne 1",
+  "userId": "c89d6ca22e83c48707631793",
+  "startingPoint": {
+   "id": "1",
+   "type": "entry"
+  },
+  "waypoints": [
+   {
+    "id": "1",
+    "type": "entry"
+   },
+   {
+    "id": "2",
+    "type": "messageLinkedin",
+    "params": {
+     "contentReference": "36a729c241fb0bdeb174788a",
+     "percentageMessageGeneratedByAI": 0
+    }
+   },
+   {
+    "id": "4",
+    "type": "failed"
+   },
+   {
+    "id": "5",
+    "type": "end"
+   },
+   {
+    "id": "166478",
+    "type": "end"
+   }
+  ],
+  "paths": [
+   {
+    "id": "1",
+    "to": "2",
+    "from": "1",
+    "condition": {
+     "isAtomic": false,
+     "leftOperand": {
+      "id": "_ziywgafyy",
+      "isAtomic": true,
+      "entity": {
+       "type": "isConnected"
+      }
+     },
+     "comparator": "OR",
+     "rightOperand": {
+      "id": "_wvqjfps4k",
+      "isAtomic": true,
+      "entity": {
+       "type": "isUnknownStatus"
+      }
+     },
+     "id": "_14dc9rvdc"
+    }
+   },
+   {
+    "id": "1925928",
+    "to": "5",
+    "from": "1",
+    "condition": {
+     "isAtomic": false,
+     "leftOperand": {
+      "id": "_pbezasew1",
+      "isAtomic": true,
+      "entity": {
+       "type": "isNotConnected"
+      }
+     },
+     "comparator": "OR",
+     "rightOperand": {
+      "id": "_mo5975f2z",
+      "isAtomic": true,
+      "entity": {
+       "type": "isUnknownStatus"
+      }
+     },
+     "id": "_hbep8ync4"
+    }
+   },
+   {
+    "id": "4",
+    "to": "4",
+    "from": "2",
+    "condition": {
+     "id": "_j88ixbugr",
+     "isAtomic": false,
+     "leftOperand": {
+      "id": "_u0lyln3y0",
+      "isAtomic": true,
+      "entity": {
+       "type": "wasNotReplied"
+      }
+     },
+     "comparator": "AND",
+     "rightOperand": {
+      "id": "_it3cw8oux",
+      "isAtomic": true,
+      "entity": {
+       "type": "sleep",
+       "params": {
+        "time": 10
+       }
+      }
+     }
+    }
+   },
+   {
+    "id": "1067997",
+    "to": "166478",
+    "from": "1",
+    "condition": {
+     "id": "_1n2tc5wez",
+     "isAtomic": false,
+     "leftOperand": {
+      "id": "_a0g4gz2qn",
+      "isAtomic": true,
+      "entity": {
+       "type": "isPending"
+      }
+     },
+     "comparator": "AND",
+     "rightOperand": {
+      "id": "_1g1hbpph0",
+      "isAtomic": true,
+      "entity": {
+       "type": "sleep",
+       "params": {
+        "time": 15
+       }
+      }
+     }
+    }
+   }
+  ],
+  "complexity": 1,
+  "tags": [
+   "templates.category.linkedin",
+   "templates.category.beginner",
+   "templates.category.recommended"
+  ],
+  "worldTemplate": {
+   "_id": "dc6e7b2244fc57a06b239008",
+   "name": "Campagne 2"
+  },
+  "prospectsPreConditions": [
+   {
+    "type": "SmallMultiSelectFilter",
+    "value": [
+     "connected",
+     "unknown"
+    ],
+    "name": "Campagne 3"
+   }
+  ],
+  "_id": "acd13ec59ec8d2a9a2122640",
+  "createdAt": "2026-09-23T11:31:47.254Z",
+  "updatedAt": "2026-09-23T11:31:47.254Z",
+  "__v": 0
+ },
+ "priority": 5,
+ "triggers": [],
+ "state": "running",
+ "origins": [
+  {
+   "origin": "prospect_batch",
+   "travelerCount": 3966,
+   "prospectList": "93cf3bec41ee0a43e5c7af22",
+   "_id": "104c02339b5693b20a227f86",
+   "__v": 0,
+   "createdAt": "2026-09-23T11:31:47.225Z",
+   "updatedAt": "2026-09-23T11:31:47.225Z"
+  }
+ ],
+ "history": [
+  {
+   "date": "2026-09-23T11:31:47.238Z",
+   "action": "created"
+  }
+ ],
+ "iconColor": "pink",
+ "worldTags": [
+  "templates.category.linkedin",
+  "templates.category.beginner",
+  "templates.category.recommended"
+ ],
+ "worldComplexity": 1,
+ "activeTravelersCount": 844,
+ "__v": 0,
+ "createdAt": "2026-09-23T11:31:47.268Z",
+ "updatedAt": "2026-09-23T15:50:17.339Z",
+ "travelersCount": {
+  "error": 4,
+  "finished": 0,
+  "paused": 0,
+  "stopped": 0,
+  "total": 853,
+  "traveling": 844,
+  "hasReplied": 1,
+  "hasRepliedInterested": 4,
+  "hasRepliedLaterInterested": 0,
+  "hasRepliedNotInterested": 0,
+  "hasNotReplied": 0,
+  "hasAcceptedInvitation": 0,
+  "hasNotAcceptedInvitation": 0,
+  "hasBeenEnriched": 0,
+  "hasNotBeenEnriched": 0,
+  "frozen": 0,
+  "postponed": 0,
+  "deleted": 0
+ },
+ "hasTravelersWithOngoingAction": true,
+ "hasTravelingTravelers": true
+}

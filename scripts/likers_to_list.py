@@ -99,7 +99,8 @@ def get_or_create_list(c: WaalaxyClient, name: str) -> str:
     return list_id
 
 
-def import_people(c: WaalaxyClient, list_id: str, people: list[dict], origin: str) -> tuple[dict, list[str], list]:
+def import_people(c: WaalaxyClient, list_id: str, people: list[dict], origin: str,
+                  move_duplicates: bool = False) -> tuple[dict, list[str], list]:
     counts: dict[str, int] = {}
     dups, errors = [], []
     for i in range(0, len(people), BATCH):
@@ -110,18 +111,28 @@ def import_people(c: WaalaxyClient, list_id: str, people: list[dict], origin: st
                                              {"firstName": p["firstName"], "lastName": p["lastName"]}.items() if v}}
                           for p in chunk],
             "prospectListId": list_id, "origin": {"name": origin},
-            "canCreateDuplicates": False, "moveDuplicatesToOtherList": False,
+            "canCreateDuplicates": False, "moveDuplicatesToOtherList": move_duplicates,
         }, dry_run=False, target=f"liste {list_id} : importer {len(chunk)} prospects")
         if res.get("dry_run"):
             raise SystemExit("WAALAXY_DRY_RUN est actif : rien n'est envoyé.")
-        for r, p in zip(res.get("result", []), chunk):
+        # `result` ne suit pas l'ordre d'entrée : on se fie au memberId renvoyé.
+        by_id = {p["memberId"]: p for p in chunk}
+        for r in res.get("result", []):
             code = r.get("importCode", "?")
             counts[code] = counts.get(code, 0) + 1
+            p = by_id.get(((r.get("prospect") or {}).get("profile") or {}).get("memberId"), {"name": "?"})
             if code == "duplicated_prospect":
                 dups.append(p["name"])
-            elif code != "success":
+            elif code not in ("success", "prospect_successfully_moved_to_another_list"):
                 errors.append((p["name"], code, r.get("message")))
     return counts, dups, errors
+
+
+def missing_from_list(c: WaalaxyClient, list_id: str, people: list[dict]) -> list[dict]:
+    r = c._call("POST", "/profesor/prospects/getProspects", json_body={
+        "prospectList": list_id, "prospectSelection": {"excluded": []}, "size": 999999})
+    ids = {(p.get("profile") or {}).get("memberId") for p in r.get("prospects", [])}
+    return [p for p in people if p["memberId"] not in ids]
 
 
 def main() -> None:
@@ -133,6 +144,8 @@ def main() -> None:
     ap.add_argument("--posts", type=int, default=5)
     ap.add_argument("--exclude", action="append", default=[], help="memberId à exclure (répétable)")
     ap.add_argument("--origin", default="claude-code", help="affiché « API-<origin> » dans Waalaxy")
+    ap.add_argument("--move-duplicates", action="store_true",
+                    help="déplace dans la liste les prospects déjà présents dans une autre liste")
     ap.add_argument("--go", action="store_true", help="écrit réellement dans Waalaxy")
     args = ap.parse_args()
 
@@ -150,12 +163,13 @@ def main() -> None:
 
     c = WaalaxyClient()
     list_id = get_or_create_list(c, args.list)
-    counts, dups, errors = import_people(c, list_id, people, args.origin)
-    r = c._call("POST", "/profesor/prospects/getProspects", json_body={
-        "prospectList": list_id, "prospectSelection": {"excluded": []}, "size": 1, "projection": {"_idOnly": True}})
-    print("import :", counts, "| liste", args.list, f"({list_id}) :", r.get("prospectsCount"), "prospects")
+    counts, dups, errors = import_people(c, list_id, people, args.origin, args.move_duplicates)
+    missing = missing_from_list(c, list_id, people)
+    print("import :", counts, "| liste", args.list, f"({list_id}) : {len(people) - len(missing)}/{len(people)} présents")
     if dups:
-        print(f"déjà dans une autre liste ({len(dups)}) :", ", ".join(dups))
+        print(f"déjà dans une autre liste ({len(dups)}) :", ", ".join(dups), "-> --move-duplicates pour les déplacer")
+    if missing:
+        print(f"absents de la liste ({len(missing)}) :", ", ".join(p["name"] for p in missing))
     if errors:
         print("erreurs :", json.dumps(errors, ensure_ascii=False))
 

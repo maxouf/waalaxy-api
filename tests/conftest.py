@@ -24,6 +24,9 @@ class FakeClient:
         self._stats = load("allStats")
         self._lists = load("prospectLists")
         self._prospects = load("getProspects")
+        self._full = load("getProspectsFull")
+        self._one = load("getProspect")
+        self._tags = load("getTags")
         self.writes: list[tuple] = []
         self.force_dry_run = False
 
@@ -60,6 +63,59 @@ class FakeClient:
 
     def eligible_prospects(self, list_id):
         return [p["_id"] for p in self._prospects["prospects"]], self._prospects["prospectsCount"]
+
+    def search_prospects(self, *, search=None, list_id=None, size=20, in_campaign=None, ids=None):
+        ps = self._full["prospects"]
+        if ids:
+            ps = [p for p in ps if p["_id"] in ids]
+        if in_campaign is not None:
+            ps = [p for p in ps if bool(p.get("isActiveInCampaign")) == in_campaign]
+        self.last_search = {"search": search, "list_id": list_id, "size": size, "ids": ids}
+        return {"prospects": ps[:size], "prospectsCount": len(ps)}
+
+    def prospect(self, *, public_identifier=None, member_id=None):
+        from waalaxy_api.client import WaalaxyError
+        pr = self._one["profile"]
+        if public_identifier == pr["publicIdentifier"] or member_id == pr["memberId"]:
+            return self._one
+        raise WaalaxyError("404 prospect_not_found", 404, "prospect_not_found")
+
+    def tags(self):
+        return self._tags["tags"]
+
+    def prospect_list(self, list_id):
+        from waalaxy_api.client import WaalaxyError
+        for l in self._lists:
+            if l["_id"] == list_id:
+                return l
+        raise WaalaxyError("404", 404, "not found")
+
+    def count_prospects(self, list_id=None, *, in_campaign=None):
+        return 3
+
+    def _w(self, action, payload, dry_run):
+        if dry_run or self.force_dry_run:
+            return {"dry_run": True, "method": "POST", "path": action, "cible": "", "payload": payload}
+        self.writes.append((action, payload))
+        return {"status": 200, "_id": "bbbbbbbbbbbbbbbbbbbbbbbb", "name": payload.get("name"), "tag": {"_id": "cc", **payload}}
+
+    def create_list(self, name, *, icon_color="blue", icon_label=None, dry_run=True):
+        return self._w("create_list", {"name": name}, dry_run)
+
+    def rename_list(self, list_id, name, *, dry_run=True):
+        return self._w("rename_list", {"list_id": list_id, "name": name}, dry_run)
+
+    def create_tag(self, name, color="blue", *, dry_run=True):
+        return self._w("create_tag", {"name": name, "color": color}, dry_run)
+
+    def add_note(self, prospect_id, text, *, dry_run=True):
+        return self._w("add_note", {"prospect": prospect_id, "text": text}, dry_run)
+
+    def add_to_campaign(self, campaign_id, list_id, prospect_ids, *, dry_run=True):
+        from waalaxy_api.client import WaalaxyError
+        if not prospect_ids:
+            raise WaalaxyError("vide")
+        return self._w("add_to_campaign", {"campaign_id": campaign_id, "list_id": list_id, "prospect_ids": list(prospect_ids)}, dry_run)
 
     def _write(self, action, cid, dry_run):
         if dry_run or self.force_dry_run:

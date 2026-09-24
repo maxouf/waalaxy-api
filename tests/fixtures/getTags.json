@@ -1,0 +1,23 @@
+{
+ "tagsCount": 3,
+ "tags": [
+  {
+   "_id": "cb21ad568445a94db2236e3a",
+   "color": "purple",
+   "name": "Liste anonymisée",
+   "user": "c89d6ca22e83c48707631793"
+  },
+  {
+   "_id": "4d08b29f02d3d1626de1c121",
+   "color": "yellow",
+   "name": "Liste anonymisée",
+   "user": "c89d6ca22e83c48707631793"
+  },
+  {
+   "_id": "e4f1f3bb9d2cb54ae9708e89",
+   "color": "orange",
+   "name": "Liste anonymisée",
+   "user": "c89d6ca22e83c48707631793"
+  }
+ ]
+}

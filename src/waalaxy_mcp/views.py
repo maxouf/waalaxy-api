@@ -193,3 +193,58 @@ def prospect_list_row(l: dict) -> dict:
         "prospects": l.get("totalProspects", 0),
         "ne_pas_contacter": bool(l.get("doNotContact")),
     }
+
+
+STATUTS = {"connected": "en relation", "pending": "invitation en attente", "not_connected": "pas en relation",
+           "unknown": "inconnu"}
+
+
+def _linkedin(pr: dict) -> str | None:
+    pid = pr.get("publicIdentifier")
+    return f"https://www.linkedin.com/in/{pid}/" if pid else pr.get("profileUrl")
+
+
+def prospect_row(p: dict, tags_by_id: dict | None = None) -> dict:
+    """Un prospect de getProspects -> ligne : identite, poste, statut, liste, tags, campagne."""
+    pr = p.get("profile") or {}
+    comp = pr.get("company")
+    pl = p.get("prospectList") or {}
+    tags = [tags_by_id.get(t, t) if tags_by_id else t for t in (p.get("tags") or []) if isinstance(t, str)]
+    return {
+        "id": p.get("_id"),
+        "nom": " ".join(x for x in (pr.get("firstName"), pr.get("lastName")) if x) or None,
+        "poste": pr.get("occupation"),
+        "entreprise": comp.get("name") if isinstance(comp, dict) else comp,
+        "region": pr.get("region"),
+        "linkedin": _linkedin(pr),
+        "relation": STATUTS.get(p.get("status"), p.get("status")),
+        "liste": pl.get("name") if isinstance(pl, dict) else pl,
+        "liste_id": pl.get("_id") if isinstance(pl, dict) else pl,
+        "en_campagne": bool(p.get("isActiveInCampaign")),
+        "tags": tags,
+        "email": p.get("contactEmail") or p.get("enrichedEmail") or None,
+    }
+
+
+def prospect_detail(p: dict, tags_by_id: dict | None = None, history: int = 8) -> dict:
+    """getProspect -> fiche : ligne + notes + derniers evenements (import, invitation, message, reponse...)."""
+    out = prospect_row(p, tags_by_id)
+    out["notes"] = [n.get("text") if isinstance(n, dict) else n for n in (p.get("notes") or [])]
+    out["en_relation_depuis"] = (p.get("connectedAt") or "")[:10] or None
+    out["ajoute_le"] = (p.get("createdAt") or "")[:10] or None
+    evts = sorted((p.get("history") or []), key=lambda e: e.get("executionDate") or "", reverse=True)[:history]
+    out["historique"] = [f"{(e.get('executionDate') or '')[:10]} {e.get('name')}" for e in evts]
+    return out
+
+
+def tag_row(t: dict) -> dict:
+    return {"id": t.get("_id"), "nom": t.get("name"), "couleur": t.get("color")}
+
+
+def prospect_list_detail(l: dict, en_campagne: int | None = None) -> dict:
+    out = prospect_list_row(l)
+    out["creee_le"] = (l.get("createdAt") or "")[:10] or None
+    out["modifiee_le"] = (l.get("updatedAt") or "")[:10] or None
+    if en_campagne is not None:
+        out["dont_en_campagne"] = en_campagne
+    return out

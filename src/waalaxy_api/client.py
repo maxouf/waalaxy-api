@@ -218,6 +218,40 @@ class WaalaxyClient:
         out = self._call("POST", "/profesor/prospectLists/getProspectLists", json_body={})
         return out if isinstance(out, list) else out.get("prospectLists", [])
 
+    def search_prospects(self, *, search: str | None = None, list_id: str | None = None, size: int = 20,
+                         in_campaign: bool | None = None, ids: list[str] | None = None) -> dict:
+        """POST /profesor/prospects/getProspects -> {prospects, prospectsCount}. Recherche texte (nom,
+        poste, entreprise), optionnellement dans une liste ; `ids` restreint a des prospects precis."""
+        body: dict = {"size": size, "prospectSelection": {"included": ids} if ids else {"excluded": []}}
+        if search:
+            body["search"] = search
+        if list_id:
+            body["prospectList"] = list_id
+        if in_campaign is not None:
+            body["filters"] = [{"name": "isActiveInCampaign", "type": "BooleanFilter", "value": bool(in_campaign)}]
+        return self._call("POST", "/profesor/prospects/getProspects", json_body=body)
+
+    def prospect(self, *, public_identifier: str | None = None, member_id: str | None = None) -> dict:
+        """POST /profesor/prospects/getProspect {publicIdentifier|memberId, forcedUser:true} -> le prospect (404 sinon)."""
+        ident = {"publicIdentifier": public_identifier} if public_identifier else {"memberId": member_id}
+        return self._call("POST", "/profesor/prospects/getProspect", json_body={**ident, "forcedUser": True})
+
+    def tags(self) -> list[dict]:
+        """POST /profesor/tags/getTags {} -> {tags:[{_id,name,color}], tagsCount}."""
+        return self._call("POST", "/profesor/tags/getTags", json_body={}).get("tags", [])
+
+    def prospect_list(self, list_id: str) -> dict:
+        """GET /profesor/prospectLists/:id -> la liste ({_id, name, totalProspects, ...})."""
+        return self._call("GET", f"/profesor/prospectLists/{list_id}")
+
+    def count_prospects(self, list_id: str | None = None, *, in_campaign: bool | None = None) -> int:
+        body: dict = {}
+        if list_id:
+            body["prospectList"] = list_id
+        if in_campaign is not None:
+            body["filters"] = [{"name": "isActiveInCampaign", "type": "BooleanFilter", "value": bool(in_campaign)}]
+        return int(self._call("POST", "/profesor/prospects/getProspectsCount", json_body=body).get("count", 0))
+
     def eligible_prospects(self, list_id: str) -> tuple[list[str], int]:
         """Ids des prospects d'une liste qui ne sont pas deja en campagne (traveling/paused/frozen/postponed),
         comme le fait l'app avant createAndStartCampaign. Rend (ids, prospectsCount)."""
@@ -243,6 +277,45 @@ class WaalaxyClient:
     def stop(self, campaign_id: str, *, dry_run: bool = True):
         """Irreversible dans l'interface (la campagne passe en Archivee)."""
         return self._write("PUT", f"/profesor/campaigns/{campaign_id}/stop", None, dry_run=dry_run, target=self._name(campaign_id))
+
+    # --- Ecriture : listes, tags, notes, enrolement (dry-run par defaut) -------------
+    # Corps releves dans le code de l'app (createList, updateList, addProspectBatch) ou
+    # dans les erreurs de validation de l'API (note, tag). Aucune de ces routes ne porte
+    # de selection implicite « tous les prospects ».
+
+    def create_list(self, name: str, *, icon_color: str = "blue", icon_label: str | None = None, dry_run: bool = True):
+        """POST /profesor/prospectLists/createProspectList {prospectList:{name, iconColor, iconLabel?}} -> la liste.
+        Erreur « Duplicate list name » si le nom existe."""
+        pl: dict = {"name": name.strip(), "iconColor": icon_color}
+        if icon_label:
+            pl["iconLabel"] = icon_label
+        return self._write("POST", "/profesor/prospectLists/createProspectList", {"prospectList": pl},
+                           dry_run=dry_run, target=f"nouvelle liste « {name.strip()} »")
+
+    def rename_list(self, list_id: str, name: str, *, dry_run: bool = True):
+        """POST /profesor/prospectLists/updateProspectList {prospectList:{_id, name}} -> la liste."""
+        return self._write("POST", "/profesor/prospectLists/updateProspectList",
+                           {"prospectList": {"_id": list_id, "name": name.strip()}},
+                           dry_run=dry_run, target=f"liste {list_id} -> « {name.strip()} »")
+
+    def create_tag(self, name: str, color: str = "blue", *, dry_run: bool = True):
+        """POST /profesor/tags/createTag {tag:{name, color}}."""
+        return self._write("POST", "/profesor/tags/createTag", {"tag": {"name": name.strip(), "color": color}},
+                           dry_run=dry_run, target=f"nouveau tag « {name.strip()} »")
+
+    def add_note(self, prospect_id: str, text: str, *, dry_run: bool = True):
+        """POST /profesor/prospects/createUpdateProspectsNote {prospect, text} (champs requis par l'API)."""
+        return self._write("POST", "/profesor/prospects/createUpdateProspectsNote", {"prospect": prospect_id, "text": text},
+                           dry_run=dry_run, target=f"note sur le prospect {prospect_id}")
+
+    def add_to_campaign(self, campaign_id: str, list_id: str, prospect_ids: list[str], *, dry_run: bool = True):
+        """POST /profesor/campaigns/:id/travelers {listId, prospectIds} — addProspectBatch de l'app.
+        Refuse une liste d'ids vide : jamais d'enrolement implicite."""
+        if not prospect_ids:
+            raise WaalaxyError("add_to_campaign : aucun prospect_id fourni (refus, pas d'enrolement implicite)")
+        return self._write("POST", f"/profesor/campaigns/{campaign_id}/travelers",
+                           {"listId": list_id, "prospectIds": list(prospect_ids)},
+                           dry_run=dry_run, target=f"{len(prospect_ids)} prospects -> campagne {campaign_id}")
 
     def build_start_payload(self, draft_id: str, *, name: str | None = None, prospects=None, triggers=None,
                             icon_color: str | None = None, prospect_list_id: str | None = None) -> dict:

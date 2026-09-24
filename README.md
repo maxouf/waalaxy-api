@@ -64,6 +64,10 @@ Lecture (vues résumées ; le brut de l'API derrière `full=True`) :
 | `waalaxy_travelers_summary` | prospects d'une campagne groupés par état |
 | `waalaxy_global_stats` | invitations et réponses du compte sur une période |
 | `waalaxy_prospect_lists` | listes de prospects, triées par taille |
+| `waalaxy_prospect_list` | fiche d'une liste : taille, dates, prospects en campagne |
+| `waalaxy_search_prospects` | recherche de prospects (nom, poste, entreprise), dans une liste ou partout |
+| `waalaxy_prospect` | fiche d'un prospect depuis son URL LinkedIn : relation, liste, tags, notes, historique |
+| `waalaxy_tags` | tags du compte |
 
 Écriture, derrière `confirm=True`. Sans lui, l'outil rend un aperçu nommé de ce qui partirait et n'émet rien :
 
@@ -72,6 +76,12 @@ Lecture (vues résumées ; le brut de l'API derrière `full=True`) :
 | `waalaxy_pause` / `waalaxy_play` | pause / reprise d'une campagne |
 | `waalaxy_stop` | archivage, **irréversible** dans Waalaxy |
 | `waalaxy_launch_draft` | crée une campagne en `running` depuis un brouillon, avec les prospects éligibles d'une liste (ceux qui ne sont pas déjà en campagne) |
+| `waalaxy_add_to_campaign` | ajoute des prospects précis (ids) d'une liste à une campagne ; écarte ceux déjà en campagne, refuse une liste vide |
+| `waalaxy_create_list` / `waalaxy_rename_list` | crée ou renomme une liste de prospects (doublon de nom refusé) |
+| `waalaxy_create_tag` | crée un tag (doublon refusé) |
+| `waalaxy_prospect_note` | ajoute ou remplace la note d'un prospect |
+
+**Volontairement absents** : suppression de prospects, suppression de listes, déplacement de prospects entre listes, ajout/retrait de tag sur des prospects, sortie de campagne. Les trois derniers reposent sur une « sélection » dont le contrat n'a pas pu être lu dans le code de l'app ; une clé mal nommée serait ignorée par le serveur et l'action porterait sur toute la liste. Voir `docs/waalaxy-api.md`, section Prospects.
 
 `WAALAXY_DRY_RUN=1` dans l'environnement bloque toute écriture au niveau du client, même avec `confirm=True`. Utile pour les tests et les évaluations d'agents.
 
@@ -106,6 +116,11 @@ src/waalaxy_mcp/views.py    vues résumées pour le modèle
 docs/waalaxy-api.md         cartographie de l'API interne
 docs/public-api.oas.js      OpenAPI de l'API publique officielle (pour comparaison)
 ```
+
+## Sécurité des écritures
+
+- Le client refuse toute requête autre que GET en dehors d'une liste explicite de routes de lecture (`READ_POSTS`). Une écriture passe obligatoirement par une méthode dédiée, avec cible nommée et dry-run par défaut.
+- **Ne jamais envoyer de requête exploratoire à une route d'écriture**, même avec un corps vide « pour voir l'erreur de validation ». Sur cette API, un corps sans sélection peut vouloir dire « tous les prospects » : `POST /prospects/archiveProspects {}` supprime l'intégralité des prospects du compte, sans confirmation ni retour possible.
 
 ## Limites connues
 

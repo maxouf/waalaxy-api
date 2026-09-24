@@ -71,6 +71,38 @@ Codes d'erreur de `POST /campaigns` relevés dans l'app : `R005400-004` prospect
 
 Script prêt : `scripts/likers_to_list.py` (réactions aux N derniers posts d'un profil → liste Waalaxy, via Apify sans cookie LinkedIn).
 
+## Endpoints (service `profesor`) — prospects, listes, tags
+
+Routes lues dans `libs/clients/profesor-client/src/routes/private/{Prospect,ProspectList,Tag}/**` (mount points `/prospects`, `/prospectLists`, `/tags`). Corps connus soit par le code appelant de l'app, soit par les erreurs de validation zod (champs **requis** seulement : un champ optionnel absent n'apparaît pas).
+
+> **AVERTISSEMENT — lu le 2026-09-23 à nos dépens.** Plusieurs routes d'écriture prennent une *sélection* de prospects (`prospectSelection: {included: [ids]}` ou `{excluded: [ids]}`, plus `prospectList`, `filters`, `search`). Dans l'app, `included: []` ou une sélection absente signifie **tous les prospects**. `POST /prospects/archiveProspects {}` (le bouton « Supprimer des prospects », annoncé irréversible) a supprimé l'intégralité des prospects du compte (~24 000), sortis de leurs campagnes, suppression physique (404 ensuite), en quelques minutes, sans confirmation. **Ne jamais appeler une route d'écriture à titre exploratoire.** Le client refuse désormais toute requête non-GET hors liste blanche de lectures.
+
+| Verbe | Chemin | Corps | Réponse / notes |
+|---|---|---|---|
+| POST | `/prospects/getProspects` | `{prospectList?, prospectSelection: {included?: [ids], excluded?: [ids]}, filters?: [{name, type:"BooleanFilter", value}], search?, excTravelerStatus?: [...], size, projection?: {_idOnly: true}}` | `{prospects[], prospectsCount}`. `search` cherche sur nom/poste/entreprise. Filtre connu : `isActiveInCampaign`. Prospect : `_id, profile{firstName,lastName,occupation,headline,company{name},publicIdentifier,memberId,profileUrl,region}, prospectList{_id,name}, status (connected/pending/not_connected), tags[ids], notes[], history[{executionDate,name,params}], isActiveInCampaign, contactEmail, enrichedEmail, connectedAt, createdAt` |
+| POST | `/prospects/getProspectsCount` | même filtre, sans size | `{count}` |
+| POST | `/prospects/getProspect` | `{publicIdentifier}` ou `{memberId}`, `forcedUser: true` | le prospect ; 404 `prospect_not_found` |
+| POST | `/prospectLists/getProspectLists` | `{}` | tableau `[{_id, name, totalProspects, doNotContact, iconColor, iconLabel, user}]` |
+| GET | `/prospectLists/:id` | — | la liste |
+| POST | `/prospectLists/createProspectList` | `{prospectList: {name, iconColor, iconLabel?}, member?}` | la liste créée ; erreur « Duplicate list name » |
+| POST | `/prospectLists/updateProspectList` | `{prospectList: {_id, name?, iconColor?, iconLabel?}}` | la liste |
+| POST | `/prospectLists/archiveProspectList` | `{_id}` | **= supprimer la liste** (app : `deleteList`). Erreur `ongoing_import` si un import est en cours. Non exposé. |
+| POST | `/prospectLists/clean` | ? | non exploré |
+| POST | `/tags/getTags` | `{}` | `{tags: [{_id, name, color}], tagsCount}` |
+| POST | `/tags/createTag` | `{tag: {name, color}}` (objet `tag` requis) | |
+| POST | `/tags/updateTag`, DELETE `/tags/removeTag/:tagId` | | non exposés |
+| POST | `/prospects/createUpdateProspectsNote` | `{prospect: id, text}` (requis) | |
+| POST | `/prospects/removeProspectNote` | ? | non exposé |
+| PUT | `/prospects/updateProspectionState` | `{prospectId, state}` (requis) | valeurs de `state` inconnues ; non exposé |
+| POST | `/campaigns/:campaignId/travelers` | `{listId, prospectIds[]}` (`addProspectBatch`) | ajoute des prospects à une campagne |
+| PUT | `/campaigns/:campaignId/travelers/exit`, `/travelers/:travelerId/exit`, `/travelers/pause`, `/travelers/play`, `/travelers/putBackInCampaign` | corps inconnu (`ExitAllBody`…), `travelerId` ≠ `prospectId` | **non exposés** |
+| PUT | `/prospects/moveProspectsToOtherList` | requis : `{newProspectList, oldProspectList}` ; sélection optionnelle (clé non lue dans le code) | **non exposé** : sans sélection reconnue, déplacerait toute la liste |
+| POST | `/prospects/addProspectsTag`, `/prospects/removeProspectsTag` | requis : `{tag}` ; sélection optionnelle (clé non lue) | **non exposés**, même raison |
+| POST | `/prospects/archiveProspects` | tout optionnel | **= SUPPRIMER. `{}` supprime tout le compte. Jamais.** |
+| POST | `/prospects/exportProspectsCsv`, `/prospects/transferProspects`, `/prospects/refreshProspects*` | | non explorés |
+
+Pour lire les corps manquants (déplacer, taguer, sortir de campagne) : observer l'app réelle (onglet Réseau) en effectuant l'action sur **un** prospect d'une liste de test. Les sourcemaps (bundles + 117 chunks) ne contiennent pas ces appelants.
+
 ## Endpoints (service `voltaire`, préfixe `/api/voltaire`) — modèles de message
 
 | Verbe | Chemin | Corps | Réponse |

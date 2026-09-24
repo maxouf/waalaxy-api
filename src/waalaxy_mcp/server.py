@@ -493,6 +493,116 @@ def waalaxy_add_to_campaign(campaign_id: str, list_id: str, prospect_ids: list[s
     return _out(out)
 
 
+ETATS_PROSPECTION = {"interested": "Intéressé", "later_interested": "À relancer"}
+
+
+def _cibles(c, prospect_ids: list[str], list_id: str):
+    """Resout des ids dans une liste : (prospects trouves par id, ids inconnus dans cette liste, liste)."""
+    l = c.prospect_list(list_id)
+    r = c.search_prospects(ids=list(prospect_ids), list_id=list_id, size=max(1, len(prospect_ids)))
+    trouves = {p["_id"]: p for p in r.get("prospects", []) if p.get("_id") in set(prospect_ids)}
+    inconnus = [i for i in prospect_ids if i not in trouves]
+    return trouves, inconnus, l
+
+
+@mcp.tool()
+def waalaxy_move_prospects(prospect_ids: list[str], from_list_id: str, to_list_id: str, confirm: bool = False) -> str:
+    """Deplace des prospects PRECIS (ids Waalaxy) d'une liste vers une autre. Refuse une liste d'ids vide
+    et ignore les ids qui ne sont pas dans la liste d'origine. Sans `confirm=True`, rend un apercu
+    (noms, liste d'origine, liste cible).
+    """
+    if not prospect_ids:
+        return _out({"erreur": "prospect_ids vide : aucun deplacement implicite"})
+    c = _client()
+    try:
+        trouves, inconnus, src = _cibles(c, prospect_ids, from_list_id)
+        dst = c.prospect_list(to_list_id)
+    except WaalaxyError as e:
+        return _erreur(e)
+    retenus = [i for i in prospect_ids if i in trouves]
+    apercu = {"apercu": not confirm, "action": "move_prospects",
+              "de": {"id": from_list_id, "nom": src.get("name")}, "vers": {"id": to_list_id, "nom": dst.get("name")},
+              "retenus": [views.prospect_row(trouves[i])["nom"] for i in retenus], "nb_retenus": len(retenus),
+              "inconnus_dans_la_liste_d_origine": inconnus}
+    if not retenus:
+        apercu["avertissement"] = "aucun prospect retenu : rien ne sera envoye"
+        return _out(apercu)
+    if not confirm:
+        return _out(apercu)
+    try:
+        r = c.move_prospects(retenus, from_list_id, to_list_id, dry_run=False)
+    except WaalaxyError as e:
+        return _erreur(e)
+    out = _resultat_ecriture(r, "move_prospects"); out.update({k: v for k, v in apercu.items() if k != "apercu"})
+    return _out(out)
+
+
+@mcp.tool()
+def waalaxy_tag_prospects(prospect_ids: list[str], list_id: str, tag_id: str, remove: bool = False, confirm: bool = False) -> str:
+    """Pose (ou retire avec `remove=True`) un tag sur des prospects PRECIS (ids Waalaxy) d'une liste.
+    `tag_id` vient de waalaxy_tags. Refuse une liste d'ids vide. Sans `confirm=True`, rend un apercu.
+    """
+    if not prospect_ids:
+        return _out({"erreur": "prospect_ids vide : aucun tag implicite"})
+    c = _client()
+    try:
+        tag = next((t for t in c.tags() if t.get("_id") == tag_id), None)
+        if tag is None:
+            return _out({"erreur": f"tag inconnu : {tag_id}", "aide": "waalaxy_tags donne les ids"})
+        trouves, inconnus, l = _cibles(c, prospect_ids, list_id)
+    except WaalaxyError as e:
+        return _erreur(e)
+    retenus = [i for i in prospect_ids if i in trouves]
+    apercu = {"apercu": not confirm, "action": "untag_prospects" if remove else "tag_prospects",
+              "tag": {"id": tag_id, "nom": tag.get("name")}, "liste": {"id": list_id, "nom": l.get("name")},
+              "retenus": [views.prospect_row(trouves[i])["nom"] for i in retenus], "nb_retenus": len(retenus),
+              "inconnus_dans_cette_liste": inconnus}
+    if not retenus:
+        apercu["avertissement"] = "aucun prospect retenu : rien ne sera envoye"
+        return _out(apercu)
+    if not confirm:
+        return _out(apercu)
+    try:
+        r = c.tag_prospects(retenus, list_id, tag_id, remove=remove, dry_run=False)
+    except WaalaxyError as e:
+        return _erreur(e)
+    out = _resultat_ecriture(r, apercu["action"]); out.update({k: v for k, v in apercu.items() if k != "apercu"})
+    return _out(out)
+
+
+@mcp.tool()
+def waalaxy_set_prospect_state(prospect_ids: list[str], list_id: str, state: str, confirm: bool = False) -> str:
+    """Change l'etat de prospection de prospects PRECIS (ids) d'une liste. Etats connus :
+    `interested` (Interesse), `later_interested` (A relancer). Une autre valeur est soumise telle quelle
+    et refusee par Waalaxy si inconnue. Sans `confirm=True`, rend un apercu.
+    """
+    if not prospect_ids:
+        return _out({"erreur": "prospect_ids vide"})
+    c = _client()
+    try:
+        trouves, inconnus, l = _cibles(c, prospect_ids, list_id)
+    except WaalaxyError as e:
+        return _erreur(e)
+    retenus = [i for i in prospect_ids if i in trouves]
+    apercu = {"apercu": not confirm, "action": "set_prospect_state", "etat": state, "etat_libelle": ETATS_PROSPECTION.get(state),
+              "liste": {"id": list_id, "nom": l.get("name")},
+              "retenus": [views.prospect_row(trouves[i])["nom"] for i in retenus], "nb_retenus": len(retenus),
+              "inconnus_dans_cette_liste": inconnus}
+    if state not in ETATS_PROSPECTION:
+        apercu["avertissement"] = f"etat non observe dans l'app ({list(ETATS_PROSPECTION)}) : Waalaxy peut le refuser"
+    if not retenus:
+        apercu["avertissement"] = "aucun prospect retenu : rien ne sera envoye"
+        return _out(apercu)
+    if not confirm:
+        return _out(apercu)
+    try:
+        r = c.set_prospection_state(retenus, list_id, state, dry_run=False)
+    except WaalaxyError as e:
+        return _erreur(e)
+    out = _resultat_ecriture(r, "set_prospect_state"); out.update({k: v for k, v in apercu.items() if k != "apercu"})
+    return _out(out)
+
+
 def main() -> None:
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == "status":

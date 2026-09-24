@@ -204,12 +204,26 @@ def _linkedin(pr: dict) -> str | None:
     return f"https://www.linkedin.com/in/{pid}/" if pid else pr.get("profileUrl")
 
 
+def tag_ids(p: dict) -> list[str]:
+    """`prospect.tags` : ids nus, ou objets {tag: {_id}} / {_id} (forme observee le 2026-09-24)."""
+    out = []
+    for t in p.get("tags") or []:
+        if isinstance(t, str):
+            out.append(t)
+        elif isinstance(t, dict):
+            inner = t.get("tag")
+            tid = (inner.get("_id") if isinstance(inner, dict) else inner) or t.get("_id")
+            if isinstance(tid, str):
+                out.append(tid)
+    return out
+
+
 def prospect_row(p: dict, tags_by_id: dict | None = None) -> dict:
     """Un prospect de getProspects -> ligne : identite, poste, statut, liste, tags, campagne."""
     pr = p.get("profile") or {}
     comp = pr.get("company")
     pl = p.get("prospectList") or {}
-    tags = [tags_by_id.get(t, t) if tags_by_id else t for t in (p.get("tags") or []) if isinstance(t, str)]
+    tags = [tags_by_id.get(t, t) if tags_by_id else t for t in tag_ids(p)]
     return {
         "id": p.get("_id"),
         "nom": " ".join(x for x in (pr.get("firstName"), pr.get("lastName")) if x) or None,
@@ -230,6 +244,7 @@ def prospect_detail(p: dict, tags_by_id: dict | None = None, history: int = 8) -
     """getProspect -> fiche : ligne + notes + derniers evenements (import, invitation, message, reponse...)."""
     out = prospect_row(p, tags_by_id)
     out["notes"] = [n.get("text") if isinstance(n, dict) else n for n in (p.get("notes") or [])]
+    out["etat_prospection"] = p.get("prospectionState")
     out["en_relation_depuis"] = (p.get("connectedAt") or "")[:10] or None
     out["ajoute_le"] = (p.get("createdAt") or "")[:10] or None
     evts = sorted((p.get("history") or []), key=lambda e: e.get("executionDate") or "", reverse=True)[:history]

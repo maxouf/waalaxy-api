@@ -115,3 +115,62 @@ def test_dry_run_force_bloque_les_nouvelles_ecritures(fake):
     fake.force_dry_run = True
     out = j(server.waalaxy_create_list("Liste test MCP", confirm=True))
     assert out["execute"] is False and fake.writes == []
+
+
+# --- actions a selection ---------------------------------------------------------
+
+def test_selection_refuse_le_vide_et_dedoublonne():
+    import pytest
+    from waalaxy_api.client import WaalaxyClient, WaalaxyError
+    with pytest.raises(WaalaxyError):
+        WaalaxyClient._selection([], "x")
+    with pytest.raises(WaalaxyError):
+        WaalaxyClient._selection(["", None], "x")
+    assert WaalaxyClient._selection(["a", "b", "a"], "x") == {"included": ["a", "b"]}
+
+
+def test_client_move_body_exact():
+    from waalaxy_api.client import WaalaxyClient
+    c = WaalaxyClient.__new__(WaalaxyClient)
+    c._request = lambda m, p, json_body=None, params=None: {"m": m, "p": p, "b": json_body}
+    r = c.move_prospects(["p1"], "L1", "L2", dry_run=False)
+    assert r == {"m": "PUT", "p": "/profesor/prospects/moveProspectsToOtherList",
+                 "b": {"newProspectList": "L2", "oldProspectList": "L1", "prospectSelection": {"included": ["p1"]}, "filters": []}}
+    r = c.tag_prospects(["p1"], "L1", "T", dry_run=False)
+    assert r["p"].endswith("/addProspectsTag") and r["b"] == {"tag": "T", "prospectList": "L1", "prospectSelection": {"included": ["p1"]}, "filters": []}
+    assert c.tag_prospects(["p1"], "L1", "T", remove=True, dry_run=False)["p"].endswith("/removeProspectsTag")
+    r = c.set_prospection_state(["p1"], "L1", "interested", dry_run=False)
+    assert r["b"] == {"state": "interested", "filters": [], "prospectList": "L1", "prospectSelection": {"included": ["p1"]}}
+
+
+def test_move_prospects_gate_et_inconnus(fake):
+    ps = fake._full["prospects"]; lid = fake._lists[0]["_id"]; dst = fake._lists[1]["_id"]
+    assert "erreur" in j(server.waalaxy_move_prospects([], lid, dst))
+    out = j(server.waalaxy_move_prospects([ps[0]["_id"], "000000000000000000000000"], lid, dst))
+    assert out["apercu"] is True and out["nb_retenus"] == 1 and out["inconnus_dans_la_liste_d_origine"] == ["000000000000000000000000"]
+    assert fake.writes == []
+    out = j(server.waalaxy_move_prospects([ps[0]["_id"]], lid, dst, confirm=True))
+    assert out["execute"] is True and fake.writes[0][0] == "move_prospects" and fake.writes[0][1]["sel"] == {"included": [ps[0]["_id"]]}
+
+
+def test_tag_prospects_refuse_tag_inconnu_puis_ecrit(fake):
+    ps = fake._full["prospects"]; lid = fake._lists[0]["_id"]; tid = fake._tags["tags"][0]["_id"]
+    assert "erreur" in j(server.waalaxy_tag_prospects([ps[0]["_id"]], lid, "ffffffffffffffffffffffff"))
+    out = j(server.waalaxy_tag_prospects([ps[0]["_id"]], lid, tid))
+    assert out["apercu"] is True and out["tag"]["nom"] == fake._tags["tags"][0]["name"] and fake.writes == []
+    j(server.waalaxy_tag_prospects([ps[0]["_id"]], lid, tid, remove=True, confirm=True))
+    assert fake.writes == [("untag", {"list": lid, "tag": tid, "sel": {"included": [ps[0]["_id"]]}})]
+
+
+def test_set_state_avertit_hors_enum(fake):
+    ps = fake._full["prospects"]; lid = fake._lists[0]["_id"]
+    out = j(server.waalaxy_set_prospect_state([ps[0]["_id"]], lid, "bizarre"))
+    assert "avertissement" in out and fake.writes == []
+    j(server.waalaxy_set_prospect_state([ps[0]["_id"]], lid, "later_interested", confirm=True))
+    assert fake.writes[0] == ("state", {"list": lid, "state": "later_interested", "sel": {"included": [ps[0]["_id"]]}})
+
+
+def test_tag_ids_toutes_les_formes():
+    p = {"tags": ["a", {"tag": {"_id": "b"}}, {"_id": "c"}, {"tag": "d"}, 5]}
+    assert views.tag_ids(p) == ["a", "b", "c", "d"]
+    assert views.prospect_row(p, {"b": "Lead"})["tags"] == ["a", "Lead", "c", "d"]

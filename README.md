@@ -80,8 +80,13 @@ Lecture (vues résumées ; le brut de l'API derrière `full=True`) :
 | `waalaxy_create_list` / `waalaxy_rename_list` | crée ou renomme une liste de prospects (doublon de nom refusé) |
 | `waalaxy_create_tag` | crée un tag (doublon refusé) |
 | `waalaxy_prospect_note` | ajoute ou remplace la note d'un prospect |
+| `waalaxy_move_prospects` | déplace des prospects précis (ids) d'une liste vers une autre |
+| `waalaxy_tag_prospects` | pose ou retire (`remove=True`) un tag sur des prospects précis d'une liste |
+| `waalaxy_set_prospect_state` | change l'état de prospection (`interested`, `later_interested`) de prospects précis |
 
-**Volontairement absents** : suppression de prospects, suppression de listes, déplacement de prospects entre listes, ajout/retrait de tag sur des prospects, sortie de campagne. Les trois derniers reposent sur une « sélection » dont le contrat n'a pas pu être lu dans le code de l'app ; une clé mal nommée serait ignorée par le serveur et l'action porterait sur toute la liste. Voir `docs/waalaxy-api.md`, section Prospects.
+Les trois derniers envoient une sélection explicite `{included: [ids]}` et refusent une liste vide : chez Waalaxy, une sélection vide signifie « tous les prospects ». Corps observés dans l'application le 24/09/2026 et testés en réel sur un prospect de test.
+
+**Volontairement absents** : suppression de prospects, suppression de listes, sortie de prospects d'une campagne (corps non observé).
 
 `WAALAXY_DRY_RUN=1` dans l'environnement bloque toute écriture au niveau du client, même avec `confirm=True`. Utile pour les tests et les évaluations d'agents.
 

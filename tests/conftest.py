@@ -117,6 +117,21 @@ class FakeClient:
             raise WaalaxyError("vide")
         return self._w("add_to_campaign", {"campaign_id": campaign_id, "list_id": list_id, "prospect_ids": list(prospect_ids)}, dry_run)
 
+    def move_prospects(self, prospect_ids, from_list_id, to_list_id, *, dry_run=True):
+        from waalaxy_api.client import WaalaxyClient
+        sel = WaalaxyClient._selection(prospect_ids, "move")
+        return self._w("move_prospects", {"from": from_list_id, "to": to_list_id, "sel": sel}, dry_run)
+
+    def tag_prospects(self, prospect_ids, list_id, tag_id, *, remove=False, dry_run=True):
+        from waalaxy_api.client import WaalaxyClient
+        sel = WaalaxyClient._selection(prospect_ids, "tag")
+        return self._w("untag" if remove else "tag", {"list": list_id, "tag": tag_id, "sel": sel}, dry_run)
+
+    def set_prospection_state(self, prospect_ids, list_id, state, *, dry_run=True):
+        from waalaxy_api.client import WaalaxyClient
+        sel = WaalaxyClient._selection(prospect_ids, "state")
+        return self._w("state", {"list": list_id, "state": state, "sel": sel}, dry_run)
+
     def _write(self, action, cid, dry_run):
         if dry_run or self.force_dry_run:
             return {"dry_run": True, "method": "PUT", "path": f"/x/{action}", "cible": cid, "payload": None}

@@ -93,15 +93,17 @@ Routes lues dans `libs/clients/profesor-client/src/routes/private/{Prospect,Pros
 | POST | `/tags/updateTag`, DELETE `/tags/removeTag/:tagId` | | non exposés |
 | POST | `/prospects/createUpdateProspectsNote` | `{prospect: id, text}` (requis) | |
 | POST | `/prospects/removeProspectNote` | ? | non exposé |
-| PUT | `/prospects/updateProspectionState` | `{prospectId, state}` (requis) | valeurs de `state` inconnues ; non exposé |
+| PUT | `/prospects/updateProspectionState` | `{prospectId, state}` (requis) | un seul prospect ; non exposé (voir `updateProspectionStates`) |
+| PUT | `/prospects/updateProspectionStates` | `{state, filters: [], prospectList, prospectSelection: {included: [ids]}}` — **observé dans l'app le 2026-09-24** | `state` vu : `interested` (Intéressé), `later_interested` (À relancer) ; les autres libellés du menu (Répondu, Pas intéressé, Finalisé, Effacer) non capturés. Le prospect porte ensuite `prospectionState`. |
 | POST | `/campaigns/:campaignId/travelers` | `{listId, prospectIds[]}` (`addProspectBatch`) | ajoute des prospects à une campagne |
 | PUT | `/campaigns/:campaignId/travelers/exit`, `/travelers/:travelerId/exit`, `/travelers/pause`, `/travelers/play`, `/travelers/putBackInCampaign` | corps inconnu (`ExitAllBody`…), `travelerId` ≠ `prospectId` | **non exposés** |
-| PUT | `/prospects/moveProspectsToOtherList` | requis : `{newProspectList, oldProspectList}` ; sélection optionnelle (clé non lue dans le code) | **non exposé** : sans sélection reconnue, déplacerait toute la liste |
-| POST | `/prospects/addProspectsTag`, `/prospects/removeProspectsTag` | requis : `{tag}` ; sélection optionnelle (clé non lue) | **non exposés**, même raison |
+| PUT | `/prospects/moveProspectsToOtherList` | `{newProspectList, oldProspectList, prospectSelection: {included: [ids]}, filters: []}` — **observé dans l'app le 2026-09-24**, testé en réel (1 prospet, aller-retour) | `{status: "success", count}` ; `status: "error"` si la liste cible est pleine (limite du plan) |
+| POST | `/prospects/addProspectsTag` | `{tag, prospectList, prospectSelection: {included: [ids]}, filters: []}` — **observé**, testé | `tags` du prospect devient une liste d'objets `{tag: {_id}}` |
+| POST | `/prospects/removeProspectsTag` | même corps, déduit par symétrie — **testé en réel** (retrait vérifié) | |
 | POST | `/prospects/archiveProspects` | tout optionnel | **= SUPPRIMER. `{}` supprime tout le compte. Jamais.** |
 | POST | `/prospects/exportProspectsCsv`, `/prospects/transferProspects`, `/prospects/refreshProspects*` | | non explorés |
 
-Pour lire les corps manquants (déplacer, taguer, sortir de campagne) : observer l'app réelle (onglet Réseau) en effectuant l'action sur **un** prospect d'une liste de test. Les sourcemaps (bundles + 117 chunks) ne contiennent pas ces appelants.
+Les corps à sélection (déplacer, taguer, état) ont été lus en posant un intercepteur `XMLHttpRequest.send` dans la page (`window.__waalog`) puis en effectuant chaque action dans l'interface sur **un** prospect d'une liste de test. Les sourcemaps (bundles + 117 chunks) ne contiennent pas ces appelants, et le lecteur réseau de l'extension Chrome ne rend pas les corps. Reste non observé : sortie de campagne (`/campaigns/:id/travelers/exit`), « Effacer » l'état.
 
 ## Endpoints (service `voltaire`, préfixe `/api/voltaire`) — modèles de message
 

@@ -317,6 +317,41 @@ class WaalaxyClient:
                            {"listId": list_id, "prospectIds": list(prospect_ids)},
                            dry_run=dry_run, target=f"{len(prospect_ids)} prospects -> campagne {campaign_id}")
 
+    # --- Ecriture : actions a selection (corps observes dans l'app le 2026-09-24) -------
+    # Toutes exigent des ids explicites : `prospectSelection.included` vide = TOUS chez Waalaxy.
+
+    @staticmethod
+    def _selection(prospect_ids: list[str], quoi: str) -> dict:
+        ids = [i for i in (prospect_ids or []) if i]
+        if not ids:
+            raise WaalaxyError(f"{quoi} : aucun prospect_id fourni (refus : une selection vide = tous les prospects)")
+        return {"included": list(dict.fromkeys(ids))}
+
+    def move_prospects(self, prospect_ids: list[str], from_list_id: str, to_list_id: str, *, dry_run: bool = True):
+        """PUT /profesor/prospects/moveProspectsToOtherList
+        {newProspectList, oldProspectList, prospectSelection:{included:[ids]}, filters:[]} (observe dans l'app)."""
+        sel = self._selection(prospect_ids, "move_prospects")
+        return self._write("PUT", "/profesor/prospects/moveProspectsToOtherList",
+                           {"newProspectList": to_list_id, "oldProspectList": from_list_id, "prospectSelection": sel, "filters": []},
+                           dry_run=dry_run, target=f"{len(sel['included'])} prospects : liste {from_list_id} -> {to_list_id}")
+
+    def tag_prospects(self, prospect_ids: list[str], list_id: str, tag_id: str, *, remove: bool = False, dry_run: bool = True):
+        """POST /profesor/prospects/addProspectsTag {tag, prospectList, prospectSelection:{included}, filters:[]} (observe).
+        removeProspectsTag : meme corps, deduit par symetrie (route jumelle, meme champ requis `tag`)."""
+        sel = self._selection(prospect_ids, "tag_prospects")
+        route = "removeProspectsTag" if remove else "addProspectsTag"
+        return self._write("POST", f"/profesor/prospects/{route}",
+                           {"tag": tag_id, "prospectList": list_id, "prospectSelection": sel, "filters": []},
+                           dry_run=dry_run, target=f"tag {tag_id} {'retire de' if remove else 'pose sur'} {len(sel['included'])} prospects")
+
+    def set_prospection_state(self, prospect_ids: list[str], list_id: str, state: str, *, dry_run: bool = True):
+        """PUT /profesor/prospects/updateProspectionStates {state, filters:[], prospectList, prospectSelection:{included}} (observe).
+        Etats observes : interested (Interesse), later_interested (A relancer). Les autres valeurs sont validees par l'API."""
+        sel = self._selection(prospect_ids, "set_prospection_state")
+        return self._write("PUT", "/profesor/prospects/updateProspectionStates",
+                           {"state": state, "filters": [], "prospectList": list_id, "prospectSelection": sel},
+                           dry_run=dry_run, target=f"etat {state} sur {len(sel['included'])} prospects")
+
     def build_start_payload(self, draft_id: str, *, name: str | None = None, prospects=None, triggers=None,
                             icon_color: str | None = None, prospect_list_id: str | None = None) -> dict:
         """Reproduit createAndStartCampaign de l'interface : la sequence du brouillon devient worldToCreate.

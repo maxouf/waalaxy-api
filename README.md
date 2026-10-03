@@ -132,3 +132,7 @@ docs/public-api.oas.js      OpenAPI de l'API publique officielle (pour comparais
 - Le lancement d'une campagne ne supprime pas le brouillon (l'application le fait à part).
 - Débit non mesuré ; le client se limite à 2 requêtes/s.
 - Mode extension non pris en charge : le jeton n'est alors ni dans `localStorage` ni dans un cookie.
+
+## Licence
+
+[MIT](LICENSE).

@@ -1,7 +1,7 @@
 {
  "_id": "2a4c52d7958f7b99cfbc06ed",
  "name": "Campagne 7",
- "user": "c89d6ca22e83c48707631793",
+ "user": "000000000000000000000000",
  "state": "draft",
  "sequence": {
   "paths": [
@@ -182,7 +182,7 @@
    "prospectList": {
     "_id": "452d7a921df8207c06249143",
     "name": "Campagne 8",
-    "user": "c89d6ca22e83c48707631793",
+    "user": "000000000000000000000000",
     "totalProspects": 1085,
     "__typename": "ProspectList"
    },
@@ -194,7 +194,7 @@
    "prospectList": {
     "_id": "69e72d901ab1e20f7eda4927",
     "name": "Campagne 9",
-    "user": "c89d6ca22e83c48707631793",
+    "user": "000000000000000000000000",
     "totalProspects": 434,
     "__typename": "ProspectList"
    },
@@ -206,7 +206,7 @@
    "prospectList": {
     "_id": "658c8097489fa8ebcd4c6403",
     "name": "Campagne 10",
-    "user": "c89d6ca22e83c48707631793",
+    "user": "000000000000000000000000",
     "totalProspects": 1020,
     "__typename": "ProspectList"
    },
@@ -218,7 +218,7 @@
    "prospectList": {
     "_id": "93cf3bec41ee0a43e5c7af22",
     "name": "Campagne 11",
-    "user": "c89d6ca22e83c48707631793",
+    "user": "000000000000000000000000",
     "totalProspects": 5232,
     "__typename": "ProspectList"
    },
@@ -230,7 +230,7 @@
    "prospectList": {
     "_id": "b84a17a7a6cd10152eee7d39",
     "name": "Campagne 12",
-    "user": "c89d6ca22e83c48707631793",
+    "user": "000000000000000000000000",
     "totalProspects": 747,
     "__typename": "ProspectList"
    },
@@ -242,7 +242,7 @@
    "prospectList": {
     "_id": "afe23bfca60b0770208d9eed",
     "name": "Campagne 13",
-    "user": "c89d6ca22e83c48707631793",
+    "user": "000000000000000000000000",
     "totalProspects": 258,
     "__typename": "ProspectList"
    },
@@ -254,7 +254,7 @@
    "prospectList": {
     "_id": "e085d4ef8d5eb131698558b8",
     "name": "Campagne 14",
-    "user": "c89d6ca22e83c48707631793",
+    "user": "000000000000000000000000",
     "totalProspects": 1653,
     "__typename": "ProspectList"
    },
@@ -266,7 +266,7 @@
    "prospectList": {
     "_id": "31aff8e152498002615f6856",
     "name": "Campagne 15",
-    "user": "c89d6ca22e83c48707631793",
+    "user": "000000000000000000000000",
     "totalProspects": 947,
     "__typename": "ProspectList"
    },

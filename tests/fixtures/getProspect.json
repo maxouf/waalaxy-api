@@ -7,7 +7,7 @@
   "occupation": "Poste anonymisé",
   "headline": "Poste anonymisé",
   "publicIdentifier": "prenom-nom-123",
-  "linkedinId": 797694357,
+  "linkedinId": 123456789,
   "memberId": "ACoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
   "salesMemberId": "ACoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
   "profilePicture": "https://example.invalid/x",
@@ -19,7 +19,7 @@
   "region": "Région",
   "country": "France",
   "company": {
-   "name": "Valowatt"
+   "name": "Entreprise A"
   },
   "_id": "be0991fdb454c90238cfbb58",
   "createdAt": "2021-06-21T09:34:50.770Z",
@@ -34,11 +34,11 @@
   "phoneNumbers": []
  },
  "prospectList": {
-  "user": "c89d6ca22e83c48707631793",
+  "user": "000000000000000000000000",
   "name": "Liste anonymisée",
   "_id": "c770aa8a8b5915c99ea273e4"
  },
- "user": "c89d6ca22e83c48707631793",
+ "user": "000000000000000000000000",
  "status": "connected",
  "isRepliedMonitored": false,
  "isSeenMonitored": false,
@@ -47,9 +47,9 @@
    "executionDate": "2026-09-23T19:34:42.172Z",
    "name": "prospect_imported",
    "params": {
-    "importedBy": "c89d6ca22e83c48707631793",
+    "importedBy": "000000000000000000000000",
     "prospectList": {
-     "user": "c89d6ca22e83c48707631793",
+     "user": "000000000000000000000000",
      "name": "Liste anonymisée",
      "totalProspects": 18,
      "_id": "c770aa8a8b5915c99ea273e4"

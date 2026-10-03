@@ -1,10 +1,10 @@
 {
  "_id": "80f996799cc6d9e4954c9a71",
  "name": "Campagne 1",
- "user": "c89d6ca22e83c48707631793",
+ "user": "000000000000000000000000",
  "world": {
   "name": "Campagne 1",
-  "userId": "c89d6ca22e83c48707631793",
+  "userId": "000000000000000000000000",
   "startingPoint": {
    "id": "1",
    "type": "entry"

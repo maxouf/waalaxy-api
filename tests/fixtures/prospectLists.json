@@ -1,7 +1,7 @@
 [
  {
   "_id": "3c1021f6ca5f71ec78faf2e6",
-  "user": "c89d6ca22e83c48707631793",
+  "user": "000000000000000000000000",
   "name": "Campagne 1",
   "iconColor": "#4E4B66",
   "iconLabel": "⛔️",
@@ -12,7 +12,7 @@
  },
  {
   "_id": "4352945db26d452ea206b780",
-  "user": "c89d6ca22e83c48707631793",
+  "user": "000000000000000000000000",
   "name": "Campagne 2",
   "totalProspects": 174,
   "__v": 0,
@@ -27,7 +27,7 @@
   "name": "Campagne 3",
   "totalProspects": 957,
   "updatedAt": "2025-05-19T17:53:40.025Z",
-  "user": "c89d6ca22e83c48707631793",
+  "user": "000000000000000000000000",
   "insensitiveCaseName": "consultant rse"
  }
 ]

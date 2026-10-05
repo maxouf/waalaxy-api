@@ -52,6 +52,28 @@ claude mcp add waalaxy --scope user -- "$PWD/.venv/bin/waalaxy-mcp"
 
 Pour un autre client MCP (Claude Desktop, Cursor, OpenCode…) : serveur stdio, commande `<chemin>/.venv/bin/waalaxy-mcp`, aucun argument.
 
+### 5. Avec ChatGPT ou Codex
+
+ChatGPT ne lance pas de serveur sur votre machine : il ne se connecte qu'à une adresse HTTP. Deux façons de faire.
+
+**Codex (CLI d'OpenAI)** lance les serveurs stdio comme Claude Code. Après les étapes 1 à 3, ajoutez dans `~/.codex/config.toml` :
+
+```toml
+[mcp_servers.waalaxy]
+command = "/chemin/vers/waalaxy-api/.venv/bin/waalaxy-mcp"
+```
+
+**ChatGPT (web ou desktop)** : plan Plus ou supérieur, mode développeur activé (Réglages → Connecteurs → Avancé). Lancez le serveur en HTTP local :
+
+```bash
+.venv/bin/waalaxy-mcp --http 8000
+# Waalaxy MCP : http://127.0.0.1:8000/mcp
+```
+
+puis reliez-le à ChatGPT par le **Secure MCP Tunnel** d'OpenAI (un petit client qui tourne chez vous et ouvre une connexion sortante vers ChatGPT, sans adresse publique). Dans ChatGPT, ajoutez le connecteur en mode **Tunnel** et choisissez votre tunnel. Le serveur et le tunnel doivent rester allumés pendant que vous utilisez ChatGPT.
+
+Le serveur n'écoute que sur `127.0.0.1` et n'a **aucune authentification** : il porte votre jeton Waalaxy. Ne l'exposez jamais directement sur internet (ngrok, redirection de port…) ; quiconque aurait l'adresse piloterait votre compte.
+
 ## Les outils MCP
 
 Lecture (vues résumées ; le brut de l'API derrière `full=True`) :

@@ -99,3 +99,17 @@ def test_launch_avec_confirm_envoie_les_ids(fake):
     assert action == "launch" and draft_id == did
     assert kw["prospects"] == [{"listId": lid, "prospectIds": ["6e5c3e6d8e1b6fd0b4c02a48"]}] or kw["prospects"][0]["listId"] == lid
     assert kw["name"] == "Test MCP"
+
+
+# --- transport ---------------------------------------------------------------
+
+def test_http_ecoute_en_local_seulement(monkeypatch):
+    appels = []
+    monkeypatch.setattr(server.mcp, "run", lambda **kw: appels.append(kw))
+    monkeypatch.setattr(server.sys, "argv", ["waalaxy-mcp", "--http", "8123"])
+    server.main()
+    kw = appels[0]
+    assert kw["transport"] == "streamable-http"
+    reglages = getattr(server.mcp, "settings", None)
+    host = reglages.host if hasattr(reglages, "host") else kw["host"]
+    assert host == "127.0.0.1"

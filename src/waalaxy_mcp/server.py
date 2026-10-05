@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Serveur MCP Waalaxy (stdio).
+"""Serveur MCP Waalaxy (stdio, ou HTTP local avec `--http [port]`).
 
 Habillage mince du client `waalaxy_api` (API interne, passerelle stargate) :
 stats de campagnes, brouillons, listes de prospects, cycle de vie et lancement.
@@ -15,6 +15,7 @@ expiration. Cette API est interne et non documentee : elle peut changer sans pre
 from __future__ import annotations
 
 import json
+import sys
 import time
 from typing import Any
 
@@ -614,7 +615,22 @@ def main() -> None:
         counts = {x["status"]: x["value"] for x in r.get("count", [])}
         print(f"Waalaxy : jeton valide. Campagnes : {counts}")
         return
+    if len(sys.argv) > 1 and sys.argv[1] == "--http":
+        port = int(sys.argv[2]) if len(sys.argv) > 2 else 8000
+        _run_http(port)
+        return
     mcp.run()
+
+
+def _run_http(port: int) -> None:
+    """Streamable HTTP sur 127.0.0.1 uniquement : aucune authentification, le
+    serveur porte le jeton Waalaxy. Pour ChatGPT, passer par le Secure MCP Tunnel."""
+    print(f"Waalaxy MCP : http://127.0.0.1:{port}/mcp", file=sys.stderr)
+    if hasattr(getattr(mcp, "settings", None), "host"):  # mcp 1.x : host/port dans les reglages
+        mcp.settings.host, mcp.settings.port = "127.0.0.1", port
+        mcp.run(transport="streamable-http")
+    else:  # mcp >= 2.0
+        mcp.run(transport="streamable-http", host="127.0.0.1", port=port)
 
 
 if __name__ == "__main__":

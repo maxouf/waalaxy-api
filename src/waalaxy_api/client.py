@@ -309,12 +309,12 @@ class WaalaxyClient:
                            dry_run=dry_run, target=f"note sur le prospect {prospect_id}")
 
     def add_to_campaign(self, campaign_id: str, list_id: str, prospect_ids: list[str], *, dry_run: bool = True):
-        """POST /profesor/campaigns/:id/travelers {listId, prospectIds} — addProspectBatch de l'app.
+        """POST /profesor/campaigns/:id/travelers {listId, prospects:[ids]} — addProspectBatch de l app (lu dans le bundle le 04/11/2026).
         Refuse une liste d'ids vide : jamais d'enrolement implicite."""
         if not prospect_ids:
             raise WaalaxyError("add_to_campaign : aucun prospect_id fourni (refus, pas d'enrolement implicite)")
         return self._write("POST", f"/profesor/campaigns/{campaign_id}/travelers",
-                           {"listId": list_id, "prospectIds": list(prospect_ids)},
+                           {"listId": list_id, "prospects": list(prospect_ids)},
                            dry_run=dry_run, target=f"{len(prospect_ids)} prospects -> campagne {campaign_id}")
 
     # --- Ecriture : actions a selection (corps observes dans l'app le 2026-09-24) -------

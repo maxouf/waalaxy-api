@@ -46,7 +46,9 @@ Tous vérifiés en appel réel le 2026-09-23 depuis la page (fetch avec le Beare
 | PUT | `/campaigns/:campaignId/play` | — | reprend une campagne **en pause**. Ne s'applique pas à un brouillon. |
 | PUT | `/campaigns/:campaignId/pause` | — | |
 | PUT | `/campaigns/:campaignId/stop` | — | archive (irréversible dans l'UI) |
-| PUT | `/campaigns/:campaignId` | mise à jour | |
+| PUT | `/campaigns/:campaignId` | `{name}` (renommer) ou `{onReply: subWorldId}` — lu dans `useCampaignManager.updateCampaign` le 2026-11-06 ; l'app n'y envoie rien d'autre | erreur `name_taken` si le nom existe |
+| PUT | `/worlds/:worldId/waypoint` | `{campaignId, waypointId, params}` — remplace les params d'une étape d'une campagne existante (`{contentReference}` pour message/invitation/demande de message, `{time}` pour une attente, params complets pour un webhook). `worldId` = `campaign.world._id`. **profesor réécrit tout le snapshot `campaign.world` à chaque appel : une modification à la fois** (commentaire du code de l'app). Exposé (`waalaxy_set_step_template`), non encore exécuté en réel. | |
+| PUT | `/worlds/:worldId/path` | `{campaignId, pathId, condition}` — remplace la condition d'un branchement (arbre `{isAtomic, entity}` / `{leftOperand, comparator, rightOperand}`) ; c'est là que vivent les délais `{type:"sleep", params:{time}}` (jours). Exposé (`waalaxy_set_delay`), non encore exécuté en réel. | |
 | POST | `/campaigns/duplicate` | | |
 | POST | `/campaigns/:campaignId/travelers` | ajout de prospects (`addProspectBatch`) | |
 | POST | `/campaigns/:campaignId/triggers` | | |
@@ -111,8 +113,34 @@ Les corps à sélection (déplacer, taguer, état) ont été lus en posant un in
 |---|---|---|---|
 | GET | `/contents/:contentId` | — | `{content:{_id, name, channel:"linkedin", type:"message", user, params:{messages:[{value, dispatchOrder, percentageMessageGeneratedByAI, valueGeneratedByAI}], gifs, audios, attachments}}}` — c'est ce que référence `waypoint.params.contentReference` |
 | POST | `/contents` | même forme sans `_id`/`user` (`name` et `channel` obligatoires) | `{content}` — vérifié le 2026-09-23 (`6ab3b785d584b2cb1c7263c4`) |
-| PUT/DELETE | `/contents/:contentId` | (`updateContent`, `deleteContent` dans la methodsMap, non testés) | |
+| PUT | `/contents/:contentId` | le modèle complet `{_id, type, channel, name, params:{attachments, gifs, audios, messages:[{value, dispatchOrder}]}}` (l'app renvoie tout le formulaire, `formatForUpdate`, lu le 2026-11-06). **Un modèle est partagé par toutes les campagnes qui le référencent.** Exposé (`waalaxy_update_message`), non encore exécuté en réel. | `{content}` |
+| DELETE | `/contents/:contentId` | | non exposé |
 | POST | `/prospectLists/getProspectLists` (profesor) | `{}` | tableau `[{_id, name, totalProspects, user, …}]` |
+
+## Endpoints (service `zilean`, préfixe `/api/zilean`) — plages horaires
+
+Lu dans `libs/clients/zilean-client` et `pages/SettingsRoutes/Settings/AccountActivity` (sourcemaps du chunk des réglages, 2026-11-06). Lectures vérifiées en réel le même jour.
+
+| Verbe | Chemin | Corps | Réponse |
+|---|---|---|---|
+| GET | `/workingSettings` | — | `{_id, user, timezone:"Europe/Paris", workingDays:[{day:1..6, ranges:[{start:{hour,minute}, end:{hour,minute}}]}], updatedAt}` — `day` 0 = dimanche … 6 = samedi ; **un jour absent est inactif** (le compte de test n'a pas de `day:0`). Défaut app si l'appel échoue : 7 jours 00:00-23:59, timezone `not_defined`. |
+| GET | `/workingSettings/canWorkNow` | — | `{canWork:true, timeUntilNextWorkingPeriod:48000000}` (ms) |
+| PUT | `/workingSettings` | `{timezone, workingDays}` — **remplace tout le planning** (l'app renvoie la liste complète à chaque changement, débounce 300 ms). Une seule plage par jour dans l'interface. Exposé (`waalaxy_set_working_hours`), non encore exécuté en réel. | |
+
+## Endpoints (service `shiva`, préfixe `/api/shiva`) — quotas et file d'actions LinkedIn
+
+Lu dans `libs/clients/shiva-client` et `entities/Quotas/hooks/useQuotasManager` (2026-11-06). Lectures vérifiées en réel le même jour.
+
+| Verbe | Chemin | Corps | Réponse |
+|---|---|---|---|
+| GET | `/quotas` | — | `{quotas:[{type, used, value, maxQuota, customMaxValue?, hasCustomMaxValueBeenAppliedOnce}], credits:[{type, value}], usedCredits:[], actionsInQueue:[]}` — `type` ∈ `connectLinkedin, messageLinkedin, visitLinkedin, followLinkedin, messageRequestLinkedin` ; `used` = fait aujourd'hui, `value` = restant aujourd'hui (= `credits`, légèrement sous `maxQuota` : 94/100, 135/150, tirage journalier), `maxQuota` = plafond appliqué, `customMaxValue` présent seulement si personnalisé. |
+| GET | `/quotas/constants` | — | `{constants:{followLinkedin:100, connectLinkedin:100, visitLinkedin:150, messageRequestLinkedin:100, messageLinkedin:150}}` = plafonds du plan, borne haute de `customMaxValue` (l'interface refuse au-delà). |
+| GET | `/quota-update` | — | `{nextUpdate:"2026-11-06T23:57:24.768Z"}` : prochaine remise à zéro des compteurs. |
+| PUT | `/quotas` | `{customMaxValue, type}` — un type à la fois | 204. Exposé (`waalaxy_set_quota`), non encore exécuté en réel. |
+| PUT | `/quotas/reset` | sans corps | 204, remet tous les plafonds aux constantes. Exposé (`waalaxy_reset_quotas`), non encore exécuté en réel. |
+| GET | `/actions…` | file d'actions LinkedIn (`getActions`, `getNextExecutionDate`, `getActionsCooldown`, `getRestrictions`), `DELETE`/`POST` actions | non explorés |
+
+Les quotas email passent par `hermes` (`/quotas`, `PUT /quotas {customMaxValue, accountId}`), non exposés.
 
 ## Endpoints (service `hawking`, préfixe `/api/hawking`)
 
@@ -163,6 +191,8 @@ Non mesuré. L'app fait des rafales de 5-10 appels au chargement. Le client rest
 **Piège navigateur** : deux `fetch` lancés en parallèle par `javascript_tool` sur le même onglet gèlent le renderer (timeouts CDP à 45 s), et un onglet gelé le reste. Une sonde à la fois, avec `AbortController` à 10-12 s.
 
 ## Vérifié le
+
+2026-11-06 — sourcemaps rechargées (bundle `index-Ba_E_6CF`, 176 chunks, 7 229 fichiers source) : routes `zilean`, `shiva`, `worlds/*/waypoint|path`, `voltaire PUT /contents` ; 5 lectures (horaires, quotas, constantes, prochaine remise à zéro, un modèle) vérifiées en réel ; aucune de ces écritures exécutée.
 
 2026-09-23 — depuis le conteneur avec `client.py` : 52 campagnes (49 + 3 brouillons, `stats`), `allStats` sur 6 variantes de paramètres, `countPerStatus`, `travelerssummary` (1), brouillon (1). Aucun appel d'écriture exécuté.
 

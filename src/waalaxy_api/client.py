@@ -380,6 +380,87 @@ class WaalaxyClient:
         payload = self.build_start_payload(draft_id, **kw)
         return self._write("POST", "/profesor/campaigns", payload, dry_run=dry_run, target=f"nouvelle campagne « {payload['name']} » depuis le brouillon {draft_id}")
 
+    # --- Lecture : reglages du compte (services zilean, shiva) et modeles (voltaire) ------
+    # Routes lues dans les sourcemaps de l'app le 2026-11-06 (zilean-client, shiva-client),
+    # reponses verifiees en reel le meme jour.
+
+    def working_settings(self) -> dict:
+        """GET /zilean/workingSettings -> {timezone, workingDays:[{day 0-6 (0 = dimanche),
+        ranges:[{start:{hour,minute}, end:{hour,minute}}]}]}. Un jour absent est inactif."""
+        return self._call("GET", "/zilean/workingSettings")
+
+    def can_work_now(self) -> dict:
+        """GET /zilean/workingSettings/canWorkNow -> {canWork, timeUntilNextWorkingPeriod (ms)}."""
+        return self._call("GET", "/zilean/workingSettings/canWorkNow")
+
+    def quotas(self) -> dict:
+        """GET /shiva/quotas -> {quotas:[{type, used, value, maxQuota, customMaxValue?,
+        hasCustomMaxValueBeenAppliedOnce}], credits:[{type,value}], usedCredits, actionsInQueue}."""
+        return self._call("GET", "/shiva/quotas")
+
+    def quota_constants(self) -> dict:
+        """GET /shiva/quotas/constants -> {type: plafond du plan} (borne haute de customMaxValue)."""
+        return self._call("GET", "/shiva/quotas/constants").get("constants", {})
+
+    def quota_next_update(self) -> str | None:
+        """GET /shiva/quota-update -> {nextUpdate} : prochaine remise a zero des compteurs du jour."""
+        return self._call("GET", "/shiva/quota-update").get("nextUpdate")
+
+    def content(self, content_id: str) -> dict:
+        """GET /voltaire/contents/:id -> le modele {_id, name, channel, type, params:{messages:[{value,
+        dispatchOrder, …}], gifs, audios, attachments}} (deballe de {content})."""
+        out = self._call("GET", f"/voltaire/contents/{content_id}")
+        return out.get("content", out) if isinstance(out, dict) else out
+
+    # --- Ecriture : modification d'une campagne ---------------------------------------
+    # Corps lus dans useCampaignManager.updateCampaign (sourcemaps, 2026-11-06). Toutes ces
+    # routes ciblent un id precis : pas de selection implicite « tous ».
+
+    def rename_campaign(self, campaign_id: str, name: str, *, dry_run: bool = True):
+        """PUT /profesor/campaigns/:id {name}. Erreur `name_taken` si le nom existe deja."""
+        return self._write("PUT", f"/profesor/campaigns/{campaign_id}", {"name": name.strip()},
+                           dry_run=dry_run, target=self._name(campaign_id))
+
+    def update_waypoint_params(self, campaign_id: str, world_id: str, waypoint_id: str, params: dict, *, dry_run: bool = True):
+        """PUT /profesor/worlds/:worldId/waypoint {campaignId, waypointId, params} : remplace les params
+        d'une etape (l'app envoie {contentReference} pour un message/une invitation, {time} pour une
+        attente). profesor reecrit tout le snapshot campaign.world : une modification a la fois."""
+        return self._write("PUT", f"/profesor/worlds/{world_id}/waypoint",
+                           {"campaignId": campaign_id, "waypointId": str(waypoint_id), "params": params},
+                           dry_run=dry_run, target=f"etape {waypoint_id} de la {self._name(campaign_id)}")
+
+    def update_path_condition(self, campaign_id: str, world_id: str, path_id: str, condition: dict, *, dry_run: bool = True):
+        """PUT /profesor/worlds/:worldId/path {campaignId, pathId, condition} : remplace la condition
+        d'un branchement (c'est la que vivent les delais `sleep {time}`, en jours)."""
+        return self._write("PUT", f"/profesor/worlds/{world_id}/path",
+                           {"campaignId": campaign_id, "pathId": str(path_id), "condition": condition},
+                           dry_run=dry_run, target=f"branchement {path_id} de la {self._name(campaign_id)}")
+
+    def update_content(self, content: dict, *, dry_run: bool = True):
+        """PUT /voltaire/contents/:id, corps = le modele complet {_id, type, channel, name, params}
+        (l'app renvoie tout le formulaire). Un modele est partage par toutes les campagnes qui le referencent."""
+        body = {k: content[k] for k in ("_id", "type", "channel", "name", "params") if k in content}
+        return self._write("PUT", f"/voltaire/contents/{content['_id']}", body,
+                           dry_run=dry_run, target=f"modele « {content.get('name')} » ({content['_id']})")
+
+    # --- Ecriture : reglages du compte -------------------------------------------------
+
+    def set_working_settings(self, timezone: str, working_days: list[dict], *, dry_run: bool = True):
+        """PUT /zilean/workingSettings {timezone, workingDays} : remplace TOUT le planning
+        (un jour absent devient inactif). Corps lu dans AccountActivity/index.tsx."""
+        return self._write("PUT", "/zilean/workingSettings", {"timezone": timezone, "workingDays": working_days},
+                           dry_run=dry_run, target="plages horaires du compte")
+
+    def set_quota(self, action_type: str, max_value: int, *, dry_run: bool = True):
+        """PUT /shiva/quotas {customMaxValue, type} : plafond journalier personnalise d'une action
+        LinkedIn, borne par quota_constants(). Corps lu dans useQuotasManager."""
+        return self._write("PUT", "/shiva/quotas", {"customMaxValue": int(max_value), "type": action_type},
+                           dry_run=dry_run, target=f"quota {action_type}")
+
+    def reset_quotas(self, *, dry_run: bool = True):
+        """PUT /shiva/quotas/reset (sans corps) : remet tous les plafonds LinkedIn aux constantes du plan."""
+        return self._write("PUT", "/shiva/quotas/reset", None, dry_run=dry_run, target="tous les quotas LinkedIn")
+
     def _name(self, campaign_id: str) -> str:
         try:
             c = self.campaign(campaign_id)
@@ -441,6 +522,9 @@ def main() -> None:
         p.add_argument("--go", action="store_true")
     sub.add_parser("lists")
     sub.add_parser("eligible").add_argument("id")
+    sub.add_parser("working-hours")
+    sub.add_parser("quotas")
+    sub.add_parser("content").add_argument("id")
     p = sub.add_parser("launch-draft")
     p.add_argument("id")
     p.add_argument("--list", dest="list_id", help="liste de prospects a enroler (ids eligibles recuperes)")
@@ -479,6 +563,12 @@ def _run(args) -> None:
     elif args.cmd == "eligible":
         ids, count = c.eligible_prospects(args.id)
         out = {"eligible": len(ids), "prospectsCount": count}
+    elif args.cmd == "working-hours":
+        out = {"settings": c.working_settings(), "now": c.can_work_now()}
+    elif args.cmd == "quotas":
+        out = {"quotas": c.quotas(), "constants": c.quota_constants(), "nextUpdate": c.quota_next_update()}
+    elif args.cmd == "content":
+        out = c.content(args.id)
     elif args.cmd in ("play", "pause", "stop"):
         out = getattr(c, args.cmd)(args.id, dry_run=not args.go)
     elif args.cmd == "launch-draft":

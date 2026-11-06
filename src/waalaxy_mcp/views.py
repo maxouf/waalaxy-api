@@ -60,7 +60,7 @@ def _params(w: dict) -> str:
         bits.append(f"modèle {p['contentReference']}")
     if p.get("note"):
         bits.append("avec note")
-    for k in ("delay", "duration", "days", "hours"):
+    for k in ("time", "delay", "duration", "days", "hours"):
         if p.get(k) is not None:
             bits.append(f"{k}={p[k]}")
     return ", ".join(bits)
@@ -79,7 +79,7 @@ def sequence_steps(world: dict | None) -> list[str]:
     for p in world.get("paths", []):
         cond = _condition(p.get("condition"))
         dst = ETAPES.get((by_id.get(str(p.get("to"))) or {}).get("type"), "?")
-        lines.append(f"{p.get('from')} → {p.get('to')} {dst}" + (f" si {cond}" if cond else ""))
+        lines.append(f"({p.get('id')}) {p.get('from')} → {p.get('to')} {dst}" + (f" si {cond}" if cond else ""))
     return lines
 
 
@@ -263,3 +263,71 @@ def prospect_list_detail(l: dict, en_campagne: int | None = None) -> dict:
     if en_campagne is not None:
         out["dont_en_campagne"] = en_campagne
     return out
+
+
+# --- Reglages du compte -------------------------------------------------------------
+
+JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"]
+
+QUOTAS = {
+    "connectLinkedin": "invitations",
+    "messageLinkedin": "messages",
+    "visitLinkedin": "visites de profil",
+    "followLinkedin": "suivis de profil",
+    "messageRequestLinkedin": "demandes de message",
+}
+
+
+def hhmm(t: dict | None) -> str:
+    t = t or {}
+    return f"{int(t.get('hour', 0)):02d}:{int(t.get('minute', 0)):02d}"
+
+
+def working_hours(ws: dict, now: dict | None = None) -> dict:
+    """GET /zilean/workingSettings (+ canWorkNow) -> fuseau, un objet par jour (lundi d'abord), etat courant."""
+    by_day = {int(d.get("day", -1)): d for d in ws.get("workingDays") or []}
+    jours = []
+    for d in (1, 2, 3, 4, 5, 6, 0):
+        wd = by_day.get(d)
+        plages = [f"{hhmm(r.get('start'))}-{hhmm(r.get('end'))}" for r in (wd or {}).get("ranges") or []]
+        jours.append({"day": d, "jour": JOURS[d], "actif": bool(plages), "plages": plages})
+    out = {"fuseau": ws.get("timezone"), "jours": jours, "modifie_le": (ws.get("updatedAt") or "")[:10]}
+    if now:
+        out["actif_maintenant"] = bool(now.get("canWork"))
+        ms = now.get("timeUntilNextWorkingPeriod")
+        if ms is not None and not now.get("canWork"):
+            out["prochaine_plage_dans_min"] = int(ms // 60000)
+    return out
+
+
+def quotas(q: dict, constants: dict | None = None, next_update: str | None = None) -> dict:
+    """GET /shiva/quotas (+ constants, quota-update) -> une ligne par action LinkedIn.
+
+    `used` = actions faites aujourd'hui, `value` = credits restants aujourd'hui (identique a `credits`),
+    `maxQuota` = plafond applique, `customMaxValue` = plafond personnalise (absent = celui du plan)."""
+    constants = constants or {}
+    rows = []
+    for x in q.get("quotas") or []:
+        t = x.get("type")
+        rows.append({
+            "type": t,
+            "libelle": QUOTAS.get(t, t),
+            "utilises_aujourdhui": x.get("used", 0),
+            "restants_aujourdhui": x.get("value"),
+            "plafond_actif": x.get("maxQuota"),
+            "plafond_personnalise": x.get("customMaxValue"),
+            "plafond_du_plan": constants.get(t, x.get("maxQuota")),
+        })
+    return {"quotas": rows, "actions_en_file": len(q.get("actionsInQueue") or []), "remise_a_zero": next_update}
+
+
+def content_detail(c: dict) -> dict:
+    """GET /voltaire/contents/:id -> nom, canal, texte du premier message, pieces jointes."""
+    p = c.get("params") or {}
+    msgs = p.get("messages") or []
+    return {
+        "id": c.get("_id"), "nom": c.get("name"), "canal": c.get("channel"), "type": c.get("type"),
+        "message": (msgs[0] or {}).get("value") if msgs else None,
+        "nb_variantes": len(msgs),
+        "pieces_jointes": len(p.get("attachments") or []), "gifs": len(p.get("gifs") or []), "audios": len(p.get("audios") or []),
+    }

@@ -90,6 +90,9 @@ Lecture (vues résumées ; le brut de l'API derrière `full=True`) :
 | `waalaxy_search_prospects` | recherche de prospects (nom, poste, entreprise), dans une liste ou partout |
 | `waalaxy_prospect` | fiche d'un prospect depuis son URL LinkedIn : relation, liste, tags, notes, historique |
 | `waalaxy_tags` | tags du compte |
+| `waalaxy_message` | un modèle de message (texte, nom, canal) depuis son id |
+| `waalaxy_working_hours` | plages horaires d'activité du compte (fuseau, jours, heures) et si Waalaxy travaille en ce moment |
+| `waalaxy_quotas` | quotas journaliers LinkedIn : utilisés, restants, plafond actif, plafond du plan, remise à zéro |
 
 Écriture, derrière `confirm=True`. Sans lui, l'outil rend un aperçu nommé de ce qui partirait et n'émet rien :
 
@@ -105,10 +108,18 @@ Lecture (vues résumées ; le brut de l'API derrière `full=True`) :
 | `waalaxy_move_prospects` | déplace des prospects précis (ids) d'une liste vers une autre |
 | `waalaxy_tag_prospects` | pose ou retire (`remove=True`) un tag sur des prospects précis d'une liste |
 | `waalaxy_set_prospect_state` | change l'état de prospection (`interested`, `later_interested`) de prospects précis |
+| `waalaxy_rename_campaign` | renomme une campagne (nom déjà pris refusé) |
+| `waalaxy_set_delay` | change le délai (en jours) d'un branchement d'une campagne existante, le reste de la condition est conservé |
+| `waalaxy_set_step_template` | remplace le modèle de message d'une étape par un autre modèle existant |
+| `waalaxy_update_message` | modifie le texte ou le nom d'un modèle de message (**partagé** par toutes les campagnes qui l'utilisent) |
+| `waalaxy_set_working_hours` | remplace les plages horaires du compte (liste complète des jours actifs, fuseau IANA) |
+| `waalaxy_set_quota` / `waalaxy_reset_quotas` | fixe le plafond journalier d'une action LinkedIn (borné par le plan) / remet tous les plafonds à ceux du plan |
 
 Les trois derniers envoient une sélection explicite `{included: [ids]}` et refusent une liste vide : chez Waalaxy, une sélection vide signifie « tous les prospects ». Corps observés dans l'application le 24/09/2026 et testés en réel sur un prospect de test.
 
-**Volontairement absents** : suppression de prospects, suppression de listes, sortie de prospects d'une campagne (corps non observé).
+Les outils de modification de campagne et de réglages du compte (06/11/2026) reposent sur des corps lus dans le code source de l'application (sourcemaps publiques) ; les lectures sont vérifiées en réel, les écritures ciblent toujours un identifiant précis.
+
+**Volontairement absents** : suppression de prospects, suppression de listes, sortie de prospects d'une campagne (corps non observé), modification de la structure d'une séquence (ajout ou retrait d'étapes).
 
 `WAALAXY_DRY_RUN=1` dans l'environnement bloque toute écriture au niveau du client, même avec `confirm=True`. Utile pour les tests et les évaluations d'agents.
 
@@ -119,6 +130,8 @@ Les trois derniers envoient une sélection explicite `{included: [ids]}` et refu
 .venv/bin/waalaxy drafts
 .venv/bin/waalaxy lists
 .venv/bin/waalaxy eligible <listId>          # prospects hors campagne en cours
+.venv/bin/waalaxy working-hours              # plages horaires + état courant (brut)
+.venv/bin/waalaxy quotas                     # quotas, constantes du plan, prochaine remise à zéro (brut)
 .venv/bin/waalaxy launch-draft <draftId> --list <listId>        # dry-run : montre le payload
 .venv/bin/waalaxy launch-draft <draftId> --list <listId> --go   # lance pour de vrai
 ```

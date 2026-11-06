@@ -27,6 +27,9 @@ class FakeClient:
         self._full = load("getProspectsFull")
         self._one = load("getProspect")
         self._tags = load("getTags")
+        self._ws = load("workingSettings")
+        self._quotas = load("quotas")
+        self._content = load("content")
         self.writes: list[tuple] = []
         self.force_dry_run = False
 
@@ -152,6 +155,54 @@ class FakeClient:
             return {"dry_run": True, "method": "POST", "path": "/profesor/campaigns", "cible": draft_id, "payload": kw}
         self.writes.append(("launch", draft_id, kw))
         return {"campaign": {"_id": "aaaaaaaaaaaaaaaaaaaaaaaa", "name": kw.get("name") or self._draft["name"], "state": "running"}}
+
+
+    # --- reglages du compte, modeles, modification de campagne (06/11/2026) ---
+
+    def working_settings(self):
+        return self._ws
+
+    def can_work_now(self):
+        return {"canWork": True, "timeUntilNextWorkingPeriod": 48000000}
+
+    def quotas(self):
+        return self._quotas
+
+    def quota_constants(self):
+        return {"followLinkedin": 100, "connectLinkedin": 100, "visitLinkedin": 150, "messageRequestLinkedin": 100, "messageLinkedin": 150}
+
+    def quota_next_update(self):
+        return "2026-11-06T23:57:24.768Z"
+
+    def content(self, content_id):
+        from waalaxy_api.client import WaalaxyError
+        if content_id != self._content["_id"]:
+            raise WaalaxyError("404 content", 404, "not found")
+        return self._content
+
+    def all_campaigns(self, states=None):
+        return self.getall["campaigns"]
+
+    def rename_campaign(self, campaign_id, name, *, dry_run=True):
+        return self._w("rename_campaign", {"campaign_id": campaign_id, "name": name}, dry_run)
+
+    def update_waypoint_params(self, campaign_id, world_id, waypoint_id, params, *, dry_run=True):
+        return self._w("update_waypoint_params", {"campaignId": campaign_id, "worldId": world_id, "waypointId": waypoint_id, "params": params}, dry_run)
+
+    def update_path_condition(self, campaign_id, world_id, path_id, condition, *, dry_run=True):
+        return self._w("update_path_condition", {"campaignId": campaign_id, "worldId": world_id, "pathId": path_id, "condition": condition}, dry_run)
+
+    def update_content(self, content, *, dry_run=True):
+        return self._w("update_content", content, dry_run)
+
+    def set_working_settings(self, timezone, working_days, *, dry_run=True):
+        return self._w("set_working_settings", {"timezone": timezone, "workingDays": working_days}, dry_run)
+
+    def set_quota(self, action_type, max_value, *, dry_run=True):
+        return self._w("set_quota", {"customMaxValue": max_value, "type": action_type}, dry_run)
+
+    def reset_quotas(self, *, dry_run=True):
+        return self._w("reset_quotas", {}, dry_run)
 
 
 @pytest.fixture

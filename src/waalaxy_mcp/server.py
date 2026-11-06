@@ -604,6 +604,335 @@ def waalaxy_set_prospect_state(prospect_ids: list[str], list_id: str, state: str
     return _out(out)
 
 
+# --- Modification d'une campagne (gate confirm) ---------------------------------------
+# Corps lus dans le code de l'app (useCampaignManager.updateCampaign) le 06/11/2026.
+
+_ETAPES_A_MODELE = ("messageLinkedin", "connectLinkedin", "messageRequestLinkedin")
+
+
+def _campagne_et_monde(c, campaign_id: str):
+    camp = c.campaign(campaign_id)
+    world = camp.get("world") or {}
+    if not world.get("_id"):
+        raise WaalaxyError(f"la campagne {campaign_id} n'a pas de sequence (world) : brouillon ?", 400, "")
+    return camp, world
+
+
+def _cible_campagne(camp: dict) -> dict:
+    return {"id": camp.get("_id"), "nom": camp.get("name"), "etat": camp.get("state")}
+
+
+@mcp.tool()
+def waalaxy_rename_campaign(campaign_id: str, name: str, confirm: bool = False) -> str:
+    """Renomme une campagne (quel que soit son etat). Refuse un nom vide ou deja pris.
+    Sans `confirm=True`, rend un apercu (ancien nom -> nouveau) et ne fait rien.
+    """
+    nom = (name or "").strip()
+    if not nom:
+        return _out({"erreur": "nom vide"})
+    c = _client()
+    try:
+        camp = c.campaign(campaign_id)
+        pris = any(x.get("name", "").strip().lower() == nom.lower() and x.get("_id") != campaign_id
+                   for x in c.all_campaigns())
+    except WaalaxyError as e:
+        return _erreur(e)
+    apercu = {"apercu": not confirm, "action": "rename_campaign", "campagne": _cible_campagne(camp),
+              "ancien_nom": camp.get("name"), "nouveau_nom": nom}
+    if pris:
+        apercu["erreur"] = "ce nom de campagne est deja pris"
+        return _out(apercu)
+    if not confirm:
+        return _out(apercu)
+    try:
+        r = c.rename_campaign(campaign_id, nom, dry_run=False)
+    except WaalaxyError as e:
+        return _erreur(e)
+    out = _resultat_ecriture(r, "rename_campaign"); out.update({k: v for k, v in apercu.items() if k != "apercu"})
+    return _out(out)
+
+
+def _sleep_nodes(node, acc: list) -> list:
+    """Tous les noeuds `sleep` d'un arbre de condition, dans l'ordre."""
+    if not isinstance(node, dict):
+        return acc
+    if node.get("isAtomic"):
+        if (node.get("entity") or {}).get("type") == "sleep":
+            acc.append(node["entity"])
+        return acc
+    _sleep_nodes(node.get("leftOperand"), acc)
+    _sleep_nodes(node.get("rightOperand"), acc)
+    return acc
+
+
+@mcp.tool()
+def waalaxy_set_delay(campaign_id: str, path_id: str, days: int, confirm: bool = False) -> str:
+    """Change le delai d'attente (en JOURS) d'un branchement d'une campagne existante. `path_id` est
+    l'identifiant entre parentheses des lignes `(id) from -> to` de waalaxy_campaign. Seuls les
+    branchements qui portent un delai (« delai de N jours ecoule ») sont modifiables ; le reste de la
+    condition est conserve tel quel. Effet sur les prospects deja en attente non verifie.
+    Sans `confirm=True`, rend un apercu (condition avant / apres) et ne fait rien.
+    """
+    import copy
+    if not isinstance(days, int) or days < 0 or days > 365:
+        return _out({"erreur": "days doit etre un entier entre 0 et 365"})
+    c = _client()
+    try:
+        camp, world = _campagne_et_monde(c, campaign_id)
+    except WaalaxyError as e:
+        return _erreur(e)
+    path = next((p for p in world.get("paths") or [] if str(p.get("id")) == str(path_id)), None)
+    if not path:
+        return _out({"erreur": f"branchement {path_id} introuvable", "branchements": [str(p.get("id")) for p in world.get("paths") or []]})
+    cond = copy.deepcopy(path.get("condition") or {})
+    nodes = _sleep_nodes(cond, [])
+    if not nodes:
+        return _out({"erreur": f"le branchement {path_id} ne porte pas de delai", "condition": views._condition(cond)})
+    avant = [int((n.get("params") or {}).get("time") or 0) for n in nodes]
+    for n in nodes:
+        n["params"] = {**(n.get("params") or {}), "time": days}
+    apercu = {"apercu": not confirm, "action": "set_delay", "campagne": _cible_campagne(camp),
+              "branchement": f"{path.get('from')} -> {path.get('to')}", "path_id": str(path_id),
+              "delai_avant_jours": avant[0] if len(avant) == 1 else avant, "delai_apres_jours": days,
+              "condition_avant": views._condition(path.get("condition")), "condition_apres": views._condition(cond)}
+    if not confirm:
+        return _out(apercu)
+    try:
+        r = c.update_path_condition(campaign_id, world["_id"], str(path_id), cond, dry_run=False)
+    except WaalaxyError as e:
+        return _erreur(e)
+    out = _resultat_ecriture(r, "set_delay"); out.update({k: v for k, v in apercu.items() if k != "apercu"})
+    return _out(out)
+
+
+@mcp.tool()
+def waalaxy_set_step_template(campaign_id: str, waypoint_id: str, content_id: str, confirm: bool = False) -> str:
+    """Remplace le modele de message d'une etape (message, invitation avec note, demande de message)
+    d'une campagne existante par un autre modele deja enregistre (`content_id`, voir waalaxy_message).
+    `waypoint_id` est l'identifiant entre crochets des etapes de waalaxy_campaign.
+    Sans `confirm=True`, rend un apercu (modele avant / apres, texte du nouveau) et ne fait rien.
+    """
+    c = _client()
+    try:
+        camp, world = _campagne_et_monde(c, campaign_id)
+    except WaalaxyError as e:
+        return _erreur(e)
+    wp = next((w for w in world.get("waypoints") or [] if str(w.get("id")) == str(waypoint_id)), None)
+    if not wp:
+        return _out({"erreur": f"etape {waypoint_id} introuvable", "etapes": views.sequence_steps(world)})
+    if wp.get("type") not in _ETAPES_A_MODELE:
+        return _out({"erreur": f"l'etape {waypoint_id} est de type {wp.get('type')} : pas de modele a changer",
+                     "types_acceptes": list(_ETAPES_A_MODELE)})
+    try:
+        nouveau = c.content(content_id)
+    except WaalaxyError as e:
+        return _erreur(e)
+    actuel = (wp.get("params") or {}).get("contentReference")
+    apercu = {"apercu": not confirm, "action": "set_step_template", "campagne": _cible_campagne(camp),
+              "etape": f"[{wp.get('id')}] {views.ETAPES.get(wp.get('type'), wp.get('type'))}",
+              "modele_avant": actuel, "modele_apres": views.content_detail(nouveau)}
+    if actuel == content_id:
+        apercu["avertissement"] = "l'etape utilise deja ce modele"
+    if not confirm:
+        return _out(apercu)
+    try:
+        r = c.update_waypoint_params(campaign_id, world["_id"], str(waypoint_id), {"contentReference": content_id}, dry_run=False)
+    except WaalaxyError as e:
+        return _erreur(e)
+    out = _resultat_ecriture(r, "set_step_template"); out.update({k: v for k, v in apercu.items() if k != "apercu"})
+    return _out(out)
+
+
+@mcp.tool()
+def waalaxy_message(content_id: str, full: bool = False) -> str:
+    """Un modele de message (texte, nom, canal) depuis son id (`contentReference` des etapes)."""
+    try:
+        m = _client().content(content_id)
+    except WaalaxyError as e:
+        return _erreur(e)
+    out = views.content_detail(m)
+    if full:
+        out["brut"] = m
+    return _out(out)
+
+
+@mcp.tool()
+def waalaxy_update_message(content_id: str, text: str, name: str | None = None, confirm: bool = False) -> str:
+    """Modifie le texte (et au besoin le nom) d'un modele de message. ATTENTION : un modele est partage
+    par toutes les campagnes qui le referencent ; la modification vaut pour toutes. Les variables
+    ({{firstName}}…) sont a ecrire telles quelles. Sans `confirm=True`, rend un apercu (avant / apres).
+    """
+    import copy
+    if not (text or "").strip():
+        return _out({"erreur": "texte vide"})
+    c = _client()
+    try:
+        m = c.content(content_id)
+    except WaalaxyError as e:
+        return _erreur(e)
+    nouveau = copy.deepcopy(m)
+    p = nouveau.setdefault("params", {})
+    msgs = p.get("messages") or []
+    if msgs:
+        msgs[0]["value"] = text
+    else:
+        p["messages"] = [{"value": text, "dispatchOrder": 0}]
+    if name and name.strip():
+        nouveau["name"] = name.strip()
+    apercu = {"apercu": not confirm, "action": "update_message",
+              "avertissement": "modele partage : toutes les campagnes qui le referencent sont touchees",
+              "avant": views.content_detail(m), "apres": views.content_detail(nouveau)}
+    if not confirm:
+        return _out(apercu)
+    try:
+        r = c.update_content(nouveau, dry_run=False)
+    except WaalaxyError as e:
+        return _erreur(e)
+    out = _resultat_ecriture(r, "update_message"); out.update({k: v for k, v in apercu.items() if k != "apercu"})
+    return _out(out)
+
+
+# --- Reglages du compte : plages horaires, quotas (gate confirm) ----------------------
+# Routes zilean / shiva lues dans les sourcemaps le 06/11/2026, lectures verifiees en reel.
+
+@mcp.tool()
+def waalaxy_working_hours() -> str:
+    """Plages horaires d'activite du compte : fuseau, jours actifs et heures, si Waalaxy travaille en ce
+    moment. Hors de ces plages aucune action LinkedIn ne part.
+    """
+    c = _client()
+    try:
+        ws = c.working_settings()
+        now = c.can_work_now()
+    except WaalaxyError as e:
+        return _erreur(e)
+    return _out(views.working_hours(ws, now))
+
+
+def _parse_hhmm(v: str) -> dict:
+    h, m = str(v).strip().split(":")
+    h, m = int(h), int(m)
+    if not (0 <= h <= 23 and 0 <= m <= 59):
+        raise ValueError(v)
+    return {"hour": h, "minute": m}
+
+
+@mcp.tool()
+def waalaxy_set_working_hours(days: list[dict], timezone: str | None = None, confirm: bool = False) -> str:
+    """Remplace les plages horaires du compte. `days` = la liste COMPLETE des jours actifs, par ex.
+    [{"day": 1, "start": "08:00", "end": "19:00"}, …] avec day 0 = dimanche … 6 = samedi ; un jour
+    absent devient inactif. `timezone` = fuseau IANA (Europe/Paris), sinon l'actuel est conserve.
+    Sans `confirm=True`, rend un apercu (avant / apres) et ne fait rien.
+    """
+    from zoneinfo import available_timezones
+    if not days:
+        return _out({"erreur": "days vide : il faut au moins un jour actif"})
+    working_days, vus = [], set()
+    for d in days:
+        try:
+            day = int(d["day"])
+            if not 0 <= day <= 6 or day in vus:
+                raise ValueError
+            start, end = _parse_hhmm(d["start"]), _parse_hhmm(d["end"])
+        except (KeyError, ValueError, TypeError, AttributeError):
+            return _out({"erreur": f"jour invalide : {d} (attendu {{day: 0-6 unique, start: 'HH:MM', end: 'HH:MM'}})"})
+        if (start["hour"], start["minute"]) > (end["hour"], end["minute"]):
+            return _out({"erreur": f"jour {day} : start apres end"})
+        vus.add(day)
+        working_days.append({"day": day, "ranges": [{"start": start, "end": end}]})
+    working_days.sort(key=lambda x: x["day"])
+    c = _client()
+    try:
+        actuel = c.working_settings()
+    except WaalaxyError as e:
+        return _erreur(e)
+    tz = (timezone or "").strip() or actuel.get("timezone")
+    if tz not in available_timezones():
+        return _out({"erreur": f"fuseau inconnu : {tz} (attendu un nom IANA, ex. Europe/Paris)"})
+    apres = {"timezone": tz, "workingDays": working_days}
+    apercu = {"apercu": not confirm, "action": "set_working_hours",
+              "avant": views.working_hours(actuel), "apres": views.working_hours(apres)}
+    if not confirm:
+        return _out(apercu)
+    try:
+        r = c.set_working_settings(tz, working_days, dry_run=False)
+    except WaalaxyError as e:
+        return _erreur(e)
+    out = _resultat_ecriture(r, "set_working_hours"); out.update({k: v for k, v in apercu.items() if k != "apercu"})
+    return _out(out)
+
+
+@mcp.tool()
+def waalaxy_quotas() -> str:
+    """Quotas journaliers LinkedIn du compte, par action (invitations, messages, visites, suivis, demandes
+    de message) : utilises et restants aujourd'hui, plafond actif, plafond personnalise, plafond du
+    plan, actions en file, heure de remise a zero.
+    """
+    c = _client()
+    try:
+        q = c.quotas()
+        consts = c.quota_constants()
+        nxt = c.quota_next_update()
+    except WaalaxyError as e:
+        return _erreur(e)
+    return _out(views.quotas(q, consts, nxt))
+
+
+@mcp.tool()
+def waalaxy_set_quota(type: str, max_value: int, confirm: bool = False) -> str:
+    """Fixe le plafond journalier d'une action LinkedIn : `type` parmi connectLinkedin, messageLinkedin,
+    visitLinkedin, followLinkedin, messageRequestLinkedin ; `max_value` entre 0 et le plafond du plan
+    (voir waalaxy_quotas). Sans `confirm=True`, rend un apercu (plafond avant / apres) et ne fait rien.
+    """
+    if type not in views.QUOTAS:
+        return _out({"erreur": f"type inconnu : {type}", "types": list(views.QUOTAS)})
+    c = _client()
+    try:
+        consts = c.quota_constants()
+        q = c.quotas()
+    except WaalaxyError as e:
+        return _erreur(e)
+    plafond = consts.get(type)
+    if not isinstance(max_value, int) or max_value < 0 or (plafond is not None and max_value > plafond):
+        return _out({"erreur": f"max_value doit etre un entier entre 0 et {plafond} pour {type}"})
+    actuel = next((x for x in q.get("quotas") or [] if x.get("type") == type), {})
+    apercu = {"apercu": not confirm, "action": "set_quota", "type": type, "libelle": views.QUOTAS[type],
+              "plafond_avant": actuel.get("customMaxValue", actuel.get("maxQuota")), "plafond_apres": max_value,
+              "plafond_du_plan": plafond}
+    if not confirm:
+        return _out(apercu)
+    try:
+        r = c.set_quota(type, max_value, dry_run=False)
+    except WaalaxyError as e:
+        return _erreur(e)
+    out = _resultat_ecriture(r, "set_quota"); out.update({k: v for k, v in apercu.items() if k != "apercu"})
+    return _out(out)
+
+
+@mcp.tool()
+def waalaxy_reset_quotas(confirm: bool = False) -> str:
+    """Remet tous les plafonds LinkedIn personnalises aux valeurs du plan. Sans `confirm=True`, rend un
+    apercu (plafonds actuels et valeurs du plan) et ne fait rien.
+    """
+    c = _client()
+    try:
+        consts = c.quota_constants()
+        q = c.quotas()
+    except WaalaxyError as e:
+        return _erreur(e)
+    apercu = {"apercu": not confirm, "action": "reset_quotas",
+              "avant": {x["type"]: x.get("customMaxValue", x.get("maxQuota")) for x in q.get("quotas") or []},
+              "apres": consts}
+    if not confirm:
+        return _out(apercu)
+    try:
+        r = c.reset_quotas(dry_run=False)
+    except WaalaxyError as e:
+        return _erreur(e)
+    out = _resultat_ecriture(r, "reset_quotas"); out.update({k: v for k, v in apercu.items() if k != "apercu"})
+    return _out(out)
+
+
 def main() -> None:
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == "status":

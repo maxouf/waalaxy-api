@@ -54,6 +54,7 @@ READ_POSTS = frozenset({
     "/profesor/prospects/getProspectsCount",
     "/profesor/prospects/getProspect",
     "/profesor/tags/getTags",
+    "/pictochat/conversation/getConversations",  # recherche ; verifie le 2026-11-07 : ne marque rien comme lu
 })
 
 
@@ -411,6 +412,35 @@ class WaalaxyClient:
         dispatchOrder, …}], gifs, audios, attachments}} (deballe de {content})."""
         out = self._call("GET", f"/voltaire/contents/{content_id}")
         return out.get("content", out) if isinstance(out, dict) else out
+
+    # --- Inbox (service pictochat) : lecture seule ------------------------------------
+    # pictochat est un cache des conversations LinkedIn, rempli par l'app quand l'inbox est
+    # ouverte : il ne garde que le DERNIER message de chaque conversation. Le fil complet est lu
+    # par l'extension Chrome directement sur LinkedIn (MESSAGE/GET_MESSAGES_FROM_CONVERSATION),
+    # hors de portee d'un appel serveur. Filtres : GET /pictochat/conversation/getConversationsFilterSetup.
+
+    def conversations(self, *, start: int = 0, count: int = 20, search: str | None = None,
+                      unread: bool | None = None, from_contact: bool | None = None,
+                      archived: bool | None = None) -> dict:
+        """POST /pictochat/conversation/getConversations (recherche, aucun effet d'ecriture) ->
+        {conversations[], totalCount}, triees du plus recent au plus ancien. `totalCount` = total filtre."""
+        filters = []
+        if unread is not None:
+            filters.append({"type": "BooleanFilter", "name": "isRead", "value": not unread})
+        if from_contact is not None:
+            filters.append({"type": "BooleanFilter", "name": "hasSentLastMessage", "value": from_contact})
+        if archived:
+            filters.append({"type": "SmallMultiSelectFilter", "name": "isArchived", "value": ["true"]})
+        body: dict = {"start": start, "count": count}
+        if search:
+            body["search"] = search
+        if filters:
+            body["filters"] = filters
+        return self._call("POST", "/pictochat/conversation/getConversations", json_body=body)
+
+    def inbox_metadata(self) -> dict:
+        """GET /pictochat/metadata -> etat de l'inbox (abonnement, synchro), deballe de {metadata}."""
+        return self._call("GET", "/pictochat/metadata").get("metadata", {})
 
     # --- Ecriture : modification d'une campagne ---------------------------------------
     # Corps lus dans useCampaignManager.updateCampaign (sourcemaps, 2026-11-06). Toutes ces

@@ -113,3 +113,36 @@ def test_http_ecoute_en_local_seulement(monkeypatch):
     reglages = getattr(server.mcp, "settings", None)
     host = reglages.host if hasattr(reglages, "host") else kw["host"]
     assert host == "127.0.0.1"
+
+
+# --- inbox (pictochat, lecture seule) ----------------------------------------
+
+def test_inbox_lignes_et_troncature(fake):
+    out = j(server.waalaxy_inbox())
+    assert out["total"] == 3
+    a, b, c = out["conversations"]
+    assert a["nom"] == "Alice Test" and a["dernier_message"]["de"] == "contact"
+    assert a["dernier_message"]["texte"].endswith("…") and len(a["dernier_message"]["texte"]) <= 301
+    assert a["tags"] == ["chaud"] and a["evenements_programmes"] == 1 and a["prospect_id"] == "p1"
+    assert a["linkedin"] == "https://www.linkedin.com/in/ACoAAtestAlice/"
+    assert b["dernier_message"]["texte"] == "(message retire)" and b["dernier_message"]["de"] == "moi"
+    assert c["nom"] is None and c["dernier_message"]["texte"].startswith("(piece jointe")
+    assert "message_le_plus_recent" in out["fraicheur"]
+
+
+def test_inbox_full_garde_le_texte_entier(fake):
+    a = j(server.waalaxy_inbox(full=True))["conversations"][0]
+    assert not a["dernier_message"]["texte"].endswith("…")
+
+
+def test_inbox_filtres(fake):
+    assert j(server.waalaxy_inbox(unread_only=True))["total"] == 1
+    assert j(server.waalaxy_inbox(last_from="moi"))["total"] == 1
+    assert j(server.waalaxy_inbox(last_from="contact"))["total"] == 2
+    assert j(server.waalaxy_inbox(archived=True))["total"] == 1
+    assert "erreur" in j(server.waalaxy_inbox(last_from="lui"))
+
+
+def test_inbox_borne_limit(fake):
+    server.waalaxy_inbox(limit=5000)
+    assert fake.conv_queries[0]["count"] == 100

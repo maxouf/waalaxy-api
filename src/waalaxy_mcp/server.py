@@ -252,6 +252,46 @@ def waalaxy_prospect_list(list_id: str) -> str:
     return _out(views.prospect_list_detail(l, en_camp))
 
 
+@mcp.tool()
+def waalaxy_inbox(search: str | None = None, unread_only: bool = False, last_from: str | None = None,
+                  archived: bool = False, limit: int = 20, start: int = 0, full: bool = False) -> str:
+    """Inbox LinkedIn vue par Waalaxy (service pictochat), en lecture seule, du plus recent au plus ancien.
+    Rend par conversation : contact (nom, titre, lien LinkedIn, memberId), DERNIER message (date, de qui,
+    texte tronque a 300 caracteres sauf `full=True`), lu/non lu, tags, relances programmees.
+    Le fil complet n'est pas disponible : pictochat ne garde que le dernier message, le reste est lu
+    sur LinkedIn par l'extension Chrome.
+    Filtres : `search` (nom du contact), `unread_only`, `last_from` ("contact" = il attend ma reponse,
+    "moi" = j'attends la sienne), `archived=True` (seulement les archivees). `total` = total filtre.
+    `fraicheur` donne la date du message le plus recent du cache : pictochat n'est alimente que quand
+    l'inbox Waalaxy est ouverte, donc une date ancienne signale un cache perime, pas une inbox calme.
+    """
+    if last_from not in (None, "contact", "moi"):
+        return _out({"erreur": "last_from doit valoir 'contact', 'moi' ou rester vide"})
+    c = _client()
+    try:
+        r = c.conversations(start=max(0, int(start)), count=max(1, min(int(limit), 100)), search=search,
+                            unread=True if unread_only else None,
+                            from_contact=None if last_from is None else last_from == "contact",
+                            archived=archived or None)
+        head = c.conversations(start=0, count=1)
+    except WaalaxyError as e:
+        return _erreur(e)
+    latest = ((head.get("conversations") or [{}])[0].get("lastMessage") or {}).get("sentAt")
+    fraicheur = {"message_le_plus_recent": latest}
+    if latest:
+        try:
+            from datetime import datetime, timezone
+            age = (datetime.now(timezone.utc) - datetime.fromisoformat(latest.replace("Z", "+00:00"))).days
+            fraicheur["age_jours"] = age
+            if age > 7:
+                fraicheur["avertissement"] = ("cache pictochat probablement perime : ouvrir l'inbox sur "
+                                              "app.waalaxy.com pour le resynchroniser")
+        except ValueError:
+            pass
+    return _out({"total": r.get("totalCount"), "fraicheur": fraicheur,
+                 "conversations": [views.conversation_row(x, full=full) for x in r.get("conversations", [])]})
+
+
 # --- Ecriture (gate confirm) ----------------------------------------------------------
 
 def _cycle(action: str, campaign_id: str, confirm: bool, avertissement: str | None = None) -> str:

@@ -199,3 +199,26 @@ Non mesuré. L'app fait des rafales de 5-10 appels au chargement. Le client rest
 ## Reste à faire
 
 - Pour « lancer une campagne » : `launch-draft <id>` en dry-run montre le payload ; GO explicite de l'utilisateur sur le brouillon désigné avant tout `--go`. Sans `prospects` ni `triggers`, la campagne créée est vide : décider d'abord quelle liste de prospects y mettre (`prospects: [{listId, prospectIds}]`, ids via `POST /profesor/prospects/…`, non cartographié).
+
+## Inbox (service `pictochat`, préfixe `/api/pictochat`) — lecture seule
+
+Lu dans les sourcemaps (`libs/clients/pictochat-client/src/private/**`) et vérifié en appel réel le 2026-11-07 sur deux comptes (quelques centaines à quelques milliers de conversations).
+
+**Ce que pictochat est.** Un cache des conversations LinkedIn, rempli par l'app quand l'inbox Waalaxy est ouverte. Il garde, par conversation, le contact (`contacts[0].miniProfile` : prénom, nom, `memberId`, titre, photo ; `tags`, `prospect`) et **seulement le dernier message** (`lastMessage` : `sentAt`, `isFromContact`, `subType` DEFAULT/EDITED/RECALLED/SYSTEM, `content.text|attachments|audioAttachments|pictureUrl|gif`). **Le fil complet n'existe pas côté serveur** : l'app le lit sur LinkedIn par l'extension Chrome (`MESSAGE/GET_MESSAGES_FROM_CONVERSATION`, `services/ChromeMessaging/ConversationMessage/`), ce qu'aucun client HTTP ne peut reproduire.
+
+**Fraîcheur.** Le cache n'avance que si l'inbox est ouverte. Le 2026-11-07, un compte dont l'inbox n'était plus ouverte s'arrêtait 361 jours en arrière, alors qu'un autre, utilisé, était à jour de la veille. Toujours comparer la date du message le plus récent à la date du jour avant de conclure « pas de réponse ».
+
+| Verbe | Chemin | Corps / params | Réponse |
+|---|---|---|---|
+| POST | `/conversation/getConversations` | `{start, count, search?, filters?, withCount?: "false", onlyCount?: "true"}` | `{conversations[], totalCount}`, triées par `effectiveSortDate` décroissante ; `totalCount` = total filtré. **Recherche sans effet** : nombre de non lus identique avant et après une vingtaine d'appels (2026-11-07). Ajouté à `READ_POSTS`. |
+| GET | `/conversation/getConversationsFilterSetup` | — | La définition des filtres acceptés (ci-dessous). |
+| GET | `/conversation/getConversationsFilterOptions` | — | `{filterOptions: []}` sur les deux comptes. |
+| GET | `/metadata/hasAccessToInbox` | — | `{hasAccessToInbox: bool}` ; un 403 ailleurs = pas d'abonnement inbox. |
+| GET | `/metadata` | — | `{metadata: {subscription:{name, expirationDate}, allConversationFetcher, conversationUpdatesFetcher, …}}` |
+| GET | `/inboxStat` | — | `{inboxStats:[{type:"conversations_managed", value, conversationsAlreadyCounted[]}]}` |
+
+Filtres (`filters[]`, forme `{type, name, value}`), vérifiés : `{BooleanFilter, isRead, false}` = non lus ; `{BooleanFilter, hasSentLastMessage, true|false}` = dernier message du contact / de moi (les deux totaux s'additionnent au total sans filtre) ; `{SmallMultiSelectFilter, isArchived, ["true"]}` = archivées. **Un nom de filtre inconnu est ignoré en silence** (`lastMessageIsFromContact` renvoyait toutes les conversations) : toujours contrôler qu'un filtre réduit le total. Existent aussi `type` (scheduleEvents message/reminder), `tags` (IncExcMultiSelectFilter), `date` (DateRangeFilter sur `lastMessage.sentAt`).
+
+Routes d'écriture présentes dans le client de l'app et **jamais appelées** : `updateConversation(s)`, `upsertConversations`, `updateLastMessage`, `synchroArchivedConversations`, `scheduledEvents/*` (create/update/cancel/delete), `seeNewQuests`, `incrementInboxStat`, `upsertMetadata`, `activate`.
+
+Outil MCP : `waalaxy_inbox(search, unread_only, last_from="contact"|"moi", archived, limit≤100, start, full)`, avec un champ `fraicheur` qui avertit au-delà de 7 jours.

@@ -30,8 +30,20 @@ class FakeClient:
         self._ws = load("workingSettings")
         self._quotas = load("quotas")
         self._content = load("content")
+        self._convs = load("conversations")
         self.writes: list[tuple] = []
         self.force_dry_run = False
+
+    def conversations(self, *, start=0, count=20, search=None, unread=None, from_contact=None, archived=None):
+        rows = self._convs["conversations"]
+        if unread is not None:
+            rows = [c for c in rows if c["isRead"] != unread]
+        if from_contact is not None:
+            rows = [c for c in rows if c["lastMessage"]["isFromContact"] == from_contact]
+        if archived:
+            rows = [c for c in rows if c["isArchived"]]
+        self.conv_queries = getattr(self, "conv_queries", []) + [{"search": search, "count": count, "start": start}]
+        return {"totalCount": len(rows), "conversations": rows[start:start + count]}
 
     def campaigns(self, states, *, start=0, count=20, search=None):
         rows = [c for c in self.getall["campaigns"] if c["state"] in states]

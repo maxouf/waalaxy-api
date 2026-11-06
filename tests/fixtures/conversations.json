@@ -1,0 +1,86 @@
+{
+ "totalCount": 3,
+ "conversations": [
+  {
+   "conversationId": "2-AAA",
+   "isRead": false,
+   "unreadCount": 2,
+   "isArchived": false,
+   "contacts": [
+    {
+     "miniProfile": {
+      "firstName": "Alice",
+      "lastName": "Test",
+      "memberId": "ACoAAtestAlice",
+      "headline": "Coach"
+     },
+     "tags": [
+      {
+       "_id": "t1",
+       "name": "chaud"
+      }
+     ],
+     "prospect": "p1"
+    }
+   ],
+   "lastMessage": {
+    "isFromContact": true,
+    "sentAt": "2026-11-06T12:00:00.000Z",
+    "subType": "DEFAULT",
+    "content": {
+     "text": "Bonjour, ça m'intéresse. xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+   },
+   "scheduleEvents": [
+    {
+     "status": "waiting",
+     "type": "reminder"
+    }
+   ]
+  },
+  {
+   "conversationId": "2-BBB",
+   "isRead": true,
+   "unreadCount": 0,
+   "isArchived": false,
+   "contacts": [
+    {
+     "miniProfile": {
+      "firstName": "Bob",
+      "lastName": "Exemple",
+      "memberId": "ACoAAtestBob"
+     },
+     "tags": []
+    }
+   ],
+   "lastMessage": {
+    "isFromContact": false,
+    "sentAt": "2026-11-05T09:00:00.000Z",
+    "subType": "RECALLED",
+    "content": {
+     "text": "supprimé"
+    }
+   },
+   "scheduleEvents": []
+  },
+  {
+   "conversationId": "2-CCC",
+   "isRead": true,
+   "unreadCount": 0,
+   "isArchived": true,
+   "contacts": [],
+   "lastMessage": {
+    "isFromContact": true,
+    "sentAt": "2026-11-01T09:00:00.000Z",
+    "content": {
+     "text": "",
+     "attachments": [
+      {
+       "id": "x"
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

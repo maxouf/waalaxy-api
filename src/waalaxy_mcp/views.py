@@ -331,3 +331,42 @@ def content_detail(c: dict) -> dict:
         "nb_variantes": len(msgs),
         "pieces_jointes": len(p.get("attachments") or []), "gifs": len(p.get("gifs") or []), "audios": len(p.get("audios") or []),
     }
+
+
+def _tag_names(tags) -> list[str]:
+    return [(t.get("name") or t.get("_id")) if isinstance(t, dict) else t for t in (tags or [])]
+
+
+def conversation_row(c: dict, full: bool = False, max_len: int = 300) -> dict:
+    """Une ligne de l'inbox pictochat : contact, dernier message (le seul que pictochat garde), etat."""
+    ct = (c.get("contacts") or [{}])[0] or {}
+    mp = ct.get("miniProfile") or {}
+    lm = c.get("lastMessage") or {}
+    content = lm.get("content") or {}
+    texte = content.get("text") or ""
+    if lm.get("subType") == "RECALLED":
+        texte = "(message retire)"
+    elif not texte and (content.get("attachments") or content.get("audioAttachments") or content.get("pictureUrl")):
+        texte = "(piece jointe, audio ou image)"
+    if not full and len(texte) > max_len:
+        texte = texte[:max_len].rstrip() + "…"
+    member_id = mp.get("memberId")
+    waiting = [e for e in (c.get("scheduleEvents") or []) if e.get("status") == "waiting"]
+    return {
+        "nom": " ".join(x for x in (mp.get("firstName"), mp.get("lastName")) if x) or None,
+        "titre": mp.get("headline"),
+        "linkedin": f"https://www.linkedin.com/in/{member_id}/" if member_id else None,
+        "member_id": member_id,
+        "prospect_id": ct.get("prospect") if isinstance(ct.get("prospect"), str) else (ct.get("prospect") or {}).get("_id"),
+        "dernier_message": {
+            "date": lm.get("sentAt"),
+            "de": "contact" if lm.get("isFromContact") else "moi",
+            "texte": texte,
+        },
+        "lu": c.get("isRead"),
+        "non_lus": c.get("unreadCount", 0),
+        "archivee": c.get("isArchived", False),
+        "tags": _tag_names(ct.get("tags")),
+        "evenements_programmes": len(waiting),
+        "conversation_id": c.get("conversationId"),
+    }

@@ -273,6 +273,7 @@ def _cycle(action: str, campaign_id: str, confirm: bool, avertissement: str | No
         return _erreur(e)
     out = _resultat_ecriture(r, action)
     out["campagne"] = cible
+    out["note"] = "l'etat se propage en quelques secondes (asynchrone) : relire avec waalaxy_campaign"
     return _out(out)
 
 

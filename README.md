@@ -117,7 +117,7 @@ Lecture (vues résumées ; le brut de l'API derrière `full=True`) :
 
 Les trois derniers envoient une sélection explicite `{included: [ids]}` et refusent une liste vide : chez Waalaxy, une sélection vide signifie « tous les prospects ». Corps observés dans l'application le 24/09/2026 et testés en réel sur un prospect de test.
 
-Les outils de modification de campagne et de réglages du compte (06/11/2026) reposent sur des corps lus dans le code source de l'application (sourcemaps publiques) ; les lectures sont vérifiées en réel, les écritures ciblent toujours un identifiant précis.
+Les outils de modification de campagne et de réglages du compte (06/11/2026) reposent sur des corps lus dans le code source de l'application (sourcemaps publiques) et ont tous été exécutés en réel le 06/11/2026 (aller-retour, état rétabli). Pause et reprise aussi ; l'état relu met quelques secondes à changer. Seul l'archivage (`waalaxy_stop`) n'a jamais été exécuté.
 
 **Volontairement absents** : suppression de prospects, suppression de listes, sortie de prospects d'une campagne (corps non observé), modification de la structure d'une séquence (ajout ou retrait d'étapes).
 
